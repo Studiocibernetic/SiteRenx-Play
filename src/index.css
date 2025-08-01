@@ -1,3 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -51,6 +56,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -92,6 +98,7 @@
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  cursor: pointer;
 }
 
 .admin-game-card-image:hover img {
