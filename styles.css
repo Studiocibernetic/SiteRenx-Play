@@ -173,6 +173,129 @@ body {
     background-color: hsl(var(--muted));
 }
 
+/* User menu styles */
+.user-btn {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-btn:hover {
+    background-color: hsl(var(--muted));
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-dropdown {
+    position: relative;
+}
+
+.user-dropdown-content {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: hsl(var(--popover));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    display: none;
+    z-index: 100;
+    margin-top: 0.5rem;
+}
+
+.user-dropdown:hover .user-dropdown-content {
+    display: block;
+}
+
+.user-info {
+    padding: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.user-info strong {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.user-info span {
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    color: hsl(var(--foreground));
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: hsl(var(--muted));
+}
+
+.dropdown-item.logout-btn {
+    color: hsl(var(--destructive));
+}
+
+.dropdown-item.logout-btn:hover {
+    background-color: hsl(var(--destructive) / 0.1);
+}
+
+/* Login form styles */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.login-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.login-form .form-group label {
+    font-weight: 500;
+    color: hsl(var(--foreground));
+}
+
+.login-form .form-group input {
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.login-form .form-group input:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+}
+
 /* Main Content */
 .main-content {
     padding: 2rem 0;
