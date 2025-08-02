@@ -146,7 +146,7 @@ function setupEventListeners() {
 // API functions
 async function apiCall(endpoint, options = {}) {
     try {
-        const response = await fetch(`/api/${endpoint}`, {
+        const response = await fetch(`index.php?api=${endpoint}`, {
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
