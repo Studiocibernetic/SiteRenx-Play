@@ -25,7 +25,7 @@ class Auth {
     /**
      * Realiza login do usuário
      * 
-     * @param string $handle Email ou handle do usuário
+     * @param string $handle Handle do usuário
      * @param string $password Senha em texto plano
      * @return array Resultado do login
      */
@@ -39,36 +39,35 @@ class Auth {
                 ];
             }
             
-            // Buscar usuário por email ou handle
-            $stmt = $this->pdo->prepare("
-                SELECT id, email, name, password_hash, is_admin 
-                FROM users 
-                WHERE email = ? OR name = ?
-            ");
-            $stmt->execute([$handle, $handle]);
+            // Buscar usuário por handle
+            $sql = "SELECT * FROM users WHERE handle = :handle";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':handle', $handle);
+            $stmt->execute();
+            
             $user = $stmt->fetch();
             
             // Verificar se usuário existe e senha está correta
-            if (!$user || !password_verify($password, $user['password_hash'])) {
+            if ($user && password_verify($password, $user['password_hash'])) {
+                // Iniciar sessão
+                $this->startSession($user['id']);
+                
+                // Retornar dados do usuário (sem senha)
+                return [
+                    'success' => true,
+                    'user' => [
+                        'id' => $user['id'],
+                        'handle' => $user['handle'],
+                        'name' => $user['name'],
+                        'is_admin' => (bool)$user['is_admin']
+                    ]
+                ];
+            } else {
                 return [
                     'success' => false,
-                    'error' => 'Handle ou senha incorretos'
+                    'error' => 'Usuário ou senha inválidos'
                 ];
             }
-            
-            // Iniciar sessão
-            $this->startSession($user['id']);
-            
-            // Retornar dados do usuário (sem senha)
-            return [
-                'success' => true,
-                'user' => [
-                    'id' => $user['id'],
-                    'email' => $user['email'],
-                    'name' => $user['name'],
-                    'is_admin' => (bool)$user['is_admin']
-                ]
-            ];
             
         } catch (PDOException $e) {
             error_log("Erro no login: " . $e->getMessage());
@@ -137,7 +136,7 @@ class Auth {
         
         try {
             $stmt = $this->pdo->prepare("
-                SELECT id, email, name, is_admin, created_at 
+                SELECT id, handle, email, name, is_admin, created_at 
                 FROM users 
                 WHERE id = ?
             ");
@@ -147,6 +146,7 @@ class Auth {
             if ($user) {
                 return [
                     'id' => $user['id'],
+                    'handle' => $user['handle'],
                     'email' => $user['email'],
                     'name' => $user['name'],
                     'is_admin' => (bool)$user['is_admin'],
@@ -178,9 +178,10 @@ class Auth {
      * @param string $name Nome do usuário
      * @param string $email Email do usuário
      * @param string $password Senha em texto plano
+     * @param string $handle Handle do usuário (opcional, será gerado se não fornecido)
      * @return array Resultado do registro
      */
-    public function register($name, $email, $password) {
+    public function register($name, $email, $password, $handle = null) {
         try {
             // Validar parâmetros
             if (empty($name) || empty($email) || empty($password)) {
@@ -198,6 +199,25 @@ class Auth {
                 ];
             }
             
+            // Gerar handle se não fornecido
+            if (empty($handle)) {
+                $handle = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+                $handle = substr($handle, 0, 20); // Limitar a 20 caracteres
+                
+                // Adicionar número se handle já existe
+                $counter = 1;
+                $original_handle = $handle;
+                while (true) {
+                    $stmt = $this->pdo->prepare("SELECT id FROM users WHERE handle = ?");
+                    $stmt->execute([$handle]);
+                    if (!$stmt->fetch()) {
+                        break;
+                    }
+                    $handle = $original_handle . $counter;
+                    $counter++;
+                }
+            }
+            
             // Verificar se email já existe
             $stmt = $this->pdo->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->execute([$email]);
@@ -208,21 +228,32 @@ class Auth {
                 ];
             }
             
+            // Verificar se handle já existe
+            $stmt = $this->pdo->prepare("SELECT id FROM users WHERE handle = ?");
+            $stmt->execute([$handle]);
+            if ($stmt->fetch()) {
+                return [
+                    'success' => false,
+                    'error' => 'Handle já existe'
+                ];
+            }
+            
             // Criar hash da senha
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
             // Inserir novo usuário
             $user_id = uniqid('user_', true);
             $stmt = $this->pdo->prepare("
-                INSERT INTO users (id, name, email, password_hash) 
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (id, handle, name, email, password_hash) 
+                VALUES (?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$user_id, $name, $email, $password_hash]);
+            $stmt->execute([$user_id, $handle, $name, $email, $password_hash]);
             
             return [
                 'success' => true,
                 'message' => 'Usuário criado com sucesso',
-                'user_id' => $user_id
+                'user_id' => $user_id,
+                'handle' => $handle
             ];
             
         } catch (PDOException $e) {

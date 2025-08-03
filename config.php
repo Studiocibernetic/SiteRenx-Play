@@ -80,6 +80,7 @@ function init_database() {
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(255) PRIMARY KEY,
+                handle VARCHAR(255) UNIQUE NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 name VARCHAR(255) NOT NULL,
@@ -185,18 +186,19 @@ function init_database() {
         
         // Criar usuário admin padrão
         $admin_email = 'admin@renxplay.com';
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$admin_email]);
+        $admin_handle = 'admin';
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR handle = ?");
+        $stmt->execute([$admin_email, $admin_handle]);
         
         if (!$stmt->fetch()) {
             $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
             $admin_id = uniqid('admin_', true);
             
             $stmt = $pdo->prepare("
-                INSERT INTO users (id, email, password_hash, name, is_admin) 
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO users (id, handle, email, password_hash, name, is_admin) 
+                VALUES (?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$admin_id, $admin_email, $admin_password, 'Admin User', true]);
+            $stmt->execute([$admin_id, $admin_handle, $admin_email, $admin_password, 'Admin User', true]);
         }
         
         // Inserir jogos de exemplo

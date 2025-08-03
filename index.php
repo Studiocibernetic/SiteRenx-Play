@@ -387,6 +387,7 @@ function handle_register() {
     $name = $input['name'] ?? '';
     $email = $input['email'] ?? '';
     $password = $input['password'] ?? '';
+    $handle = $input['handle'] ?? null;
     
     if (empty($name) || empty($email) || empty($password)) {
         http_response_code(400);
@@ -395,7 +396,7 @@ function handle_register() {
     }
     
     $auth = new Auth();
-    $result = $auth->register($name, $email, $password);
+    $result = $auth->register($name, $email, $password, $handle);
     
     if ($result['success']) {
         echo json_encode($result);

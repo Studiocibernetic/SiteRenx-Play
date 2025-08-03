@@ -29,7 +29,7 @@ O sistema de autenticação foi completamente reescrito com uma classe `Auth` ro
 Realiza login do usuário.
 
 **Parâmetros:**
-- `$handle`: Email ou nome do usuário
+- `$handle`: Handle do usuário
 - `$password`: Senha em texto plano
 
 **Retorno:**
@@ -38,7 +38,7 @@ Realiza login do usuário.
     'success' => true/false,
     'user' => [
         'id' => 'user_id',
-        'email' => 'user@example.com',
+        'handle' => 'user_handle',
         'name' => 'User Name',
         'is_admin' => true/false
     ],
@@ -70,6 +70,7 @@ Obtém dados completos do usuário atual.
 ```php
 [
     'id' => 'user_id',
+    'handle' => 'user_handle',
     'email' => 'user@example.com',
     'name' => 'User Name',
     'is_admin' => true/false,
@@ -87,13 +88,14 @@ Verifica se o usuário atual é admin.
 
 **Retorno:** `bool`
 
-#### `register($name, $email, $password)`
+#### `register($name, $email, $password, $handle = null)`
 Registra um novo usuário.
 
 **Parâmetros:**
 - `$name`: Nome do usuário
 - `$email`: Email do usuário
 - `$password`: Senha em texto plano
+- `$handle`: Handle do usuário (opcional, será gerado automaticamente se não fornecido)
 
 **Retorno:**
 ```php
@@ -101,6 +103,7 @@ Registra um novo usuário.
     'success' => true/false,
     'message' => 'Usuário criado com sucesso',
     'user_id' => 'new_user_id',
+    'handle' => 'generated_handle',
     'error' => 'Mensagem de erro' // se success = false
 ]
 ```
@@ -126,7 +129,7 @@ POST /index.php?api=auth/login
 Content-Type: application/json
 
 {
-    "handle": "admin@renxplay.com",
+    "handle": "admin",
     "password": "admin123"
 }
 ```
@@ -137,7 +140,7 @@ Content-Type: application/json
     "success": true,
     "user": {
         "id": "admin_renxplay_2024",
-        "email": "admin@renxplay.com",
+        "handle": "admin",
         "name": "Admin User",
         "is_admin": true
     }
@@ -168,6 +171,7 @@ GET /index.php?api=auth/status
     "authenticated": true,
     "user": {
         "id": "user_id",
+        "handle": "user_handle",
         "email": "user@example.com",
         "name": "User Name",
         "is_admin": true,
@@ -184,7 +188,8 @@ Content-Type: application/json
 {
     "name": "Novo Usuário",
     "email": "user@example.com",
-    "password": "senha123"
+    "password": "senha123",
+    "handle": "novousuario" // opcional
 }
 ```
 
@@ -193,7 +198,8 @@ Content-Type: application/json
 {
     "success": true,
     "message": "Usuário criado com sucesso",
-    "user_id": "user_123456"
+    "user_id": "user_123456",
+    "handle": "novousuario"
 }
 ```
 
@@ -350,7 +356,7 @@ Faça upload dos arquivos:
 ```bash
 curl -X POST https://seu-site.epizy.com/index.php?api=auth/login \
   -H "Content-Type: application/json" \
-  -d '{"handle":"admin@renxplay.com","password":"admin123"}' \
+  -d '{"handle":"admin","password":"admin123"}' \
   -c cookies.txt
 ```
 

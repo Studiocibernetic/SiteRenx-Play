@@ -16,6 +16,7 @@
 -- Criar tabela de usuários
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY,
+    handle VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -109,8 +110,8 @@ CREATE INDEX IF NOT EXISTS idx_comments_game_id ON comments(game_id);
 CREATE INDEX IF NOT EXISTS idx_game_images_game_id ON game_images(game_id);
 
 -- Inserir usuário admin padrão
-INSERT IGNORE INTO users (id, email, password_hash, name, is_admin) VALUES 
-('admin_renxplay_2024', 'admin@renxplay.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', TRUE);
+INSERT IGNORE INTO users (id, handle, email, password_hash, name, is_admin) VALUES 
+('admin_renxplay_2024', 'admin', 'admin@renxplay.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', TRUE);
 
 -- Inserir jogos de exemplo
 INSERT IGNORE INTO games (

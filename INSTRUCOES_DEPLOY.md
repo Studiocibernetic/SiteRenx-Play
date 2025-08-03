@@ -46,7 +46,7 @@ Certifique-se que os arquivos têm permissão **644**:
 ### 4. Testar o Site
 
 1. **Acesse seu site**: `https://seu-site.epizy.com`
-2. **Faça login**: `admin@renxplay.com` / `admin123`
+2. **Faça login**: `admin` / `admin123`
 3. **Teste as funcionalidades**:
    - ✅ Login/Logout
    - ✅ Menu de usuário
@@ -93,7 +93,7 @@ Após executar o SQL, você terá:
 - ✅ `chat_messages` - Mensagens de chat
 
 ### Dados Inseridos
-- ✅ **Admin**: `admin@renxplay.com` / `admin123`
+- ✅ **Admin**: `admin` / `admin123`
 - ✅ **3 jogos de exemplo**
 - ✅ **4 imagens de exemplo**
 - ✅ **Índices de performance**
