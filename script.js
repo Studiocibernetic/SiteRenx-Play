@@ -2,8 +2,6 @@
 let currentPage = 1;
 let searchQuery = '';
 let debouncedSearch = '';
-let currentUser = null;
-let isAdmin = false;
 
 // Elementos DOM
 const searchInput = document.getElementById('searchInput');
@@ -15,28 +13,23 @@ const themeToggle = document.querySelector('.theme-toggle');
 // Modais
 const gameModal = document.getElementById('gameModal');
 const adminModal = document.getElementById('adminModal');
-const loginModal = document.getElementById('loginModal');
 const gameFormModal = document.getElementById('gameFormModal');
 
 // Botões de fechar
 const closeModal = document.getElementById('closeModal');
 const closeAdminModal = document.getElementById('closeAdminModal');
 const closeFormModal = document.getElementById('closeFormModal');
-const closeLoginModal = document.getElementById('closeLoginModal');
 
 // Botões admin
 const adminBtn = document.getElementById('adminBtn');
 const addGameBtn = document.getElementById('addGameBtn');
-const logoutBtn = document.getElementById('logoutBtn');
 
 // Formulários
-const loginForm = document.getElementById('loginForm');
 const gameForm = document.getElementById('gameForm');
 
 // Inicializar aplicação
 document.addEventListener('DOMContentLoaded', function() {
     inicializarTema();
-    verificarStatusAdmin();
     carregarJogos();
     configurarEventListeners();
 });
@@ -101,22 +94,12 @@ function configurarEventListeners() {
     closeModal.addEventListener('click', () => esconderModal(gameModal));
     closeAdminModal.addEventListener('click', () => esconderModal(adminModal));
     closeFormModal.addEventListener('click', () => esconderModal(gameFormModal));
-    closeLoginModal.addEventListener('click', () => esconderModal(loginModal));
 
     // Botões admin
-    adminBtn.addEventListener('click', () => {
-        if (isAdmin) {
-            mostrarPainelAdmin();
-        } else {
-            mostrarModal(loginModal);
-        }
-    });
-    
+    adminBtn.addEventListener('click', () => mostrarPainelAdmin());
     addGameBtn.addEventListener('click', () => mostrarFormularioJogo());
-    logoutBtn.addEventListener('click', fazerLogout);
 
     // Submissão de formulários
-    loginForm.addEventListener('submit', fazerLogin);
     gameForm.addEventListener('submit', submeterFormularioJogo);
 
     // Cliques no backdrop dos modais
@@ -129,9 +112,6 @@ function configurarEventListeners() {
     gameFormModal.addEventListener('click', (e) => {
         if (e.target === gameFormModal) esconderModal(gameFormModal);
     });
-    loginModal.addEventListener('click', (e) => {
-        if (e.target === loginModal) esconderModal(loginModal);
-    });
 }
 
 // Funções de API
@@ -142,7 +122,6 @@ async function chamadaAPI(endpoint, opcoes = {}) {
                 'Content-Type': 'application/json',
                 ...opcoes.headers
             },
-            credentials: 'include',
             ...opcoes
         });
         
@@ -344,84 +323,6 @@ function selecionarPlataforma(plataforma, url) {
         mostrarSucesso(`Download iniciado para ${plataforma}`);
     } else {
         mostrarErro('Link de download não disponível');
-    }
-}
-
-// Autenticação admin
-async function verificarStatusAdmin() {
-    try {
-        const status = await chamadaAPI('auth/status');
-        if (status.authenticated) {
-            currentUser = status.user;
-            isAdmin = true;
-            atualizarInterfaceAdmin();
-        } else {
-            currentUser = null;
-            isAdmin = false;
-            atualizarInterfaceAdmin();
-        }
-    } catch (erro) {
-        console.error('Erro ao verificar status admin:', erro);
-        currentUser = null;
-        isAdmin = false;
-        atualizarInterfaceAdmin();
-    }
-}
-
-function atualizarInterfaceAdmin() {
-    if (isAdmin) {
-        adminBtn.innerHTML = `
-            <i class="fas fa-cog"></i>
-            Admin (${currentUser.name})
-        `;
-        adminBtn.className = 'admin-btn logged-in';
-    } else {
-        adminBtn.innerHTML = `
-            <i class="fas fa-cog"></i>
-            Admin
-        `;
-        adminBtn.className = 'admin-btn';
-    }
-}
-
-async function fazerLogin(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(loginForm);
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    try {
-        const resposta = await chamadaAPI('auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (resposta.success) {
-            currentUser = resposta.user;
-            isAdmin = true;
-            atualizarInterfaceAdmin();
-            esconderModal(loginModal);
-            loginForm.reset();
-            mostrarSucesso('Login realizado com sucesso!');
-        }
-    } catch (erro) {
-        console.error('Falha no login:', erro);
-        mostrarErro(erro.message || 'Erro ao fazer login');
-    }
-}
-
-async function fazerLogout() {
-    try {
-        await chamadaAPI('auth/logout', { method: 'POST' });
-        currentUser = null;
-        isAdmin = false;
-        atualizarInterfaceAdmin();
-        esconderModal(adminModal);
-        mostrarSucesso('Logout realizado com sucesso!');
-    } catch (erro) {
-        console.error('Falha no logout:', erro);
-        mostrarErro('Erro ao fazer logout');
     }
 }
 

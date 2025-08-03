@@ -1,8 +1,174 @@
 <?php
 session_start();
 
-// Incluir configurações
-require_once 'config.php';
+// Configurações para KSWeb (localhost)
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'renxplay');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+
+// Configurações de segurança
+define('SECRET_KEY', 'renxplay_secret_key_2024');
+
+// Configurações de sessão
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0);
+ini_set('session.cookie_samesite', 'Lax');
+
+// Configurações de erro (desabilitar em produção)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Configuração de timezone
+date_default_timezone_set('America/Sao_Paulo');
+
+// Função para obter conexão com o banco
+function get_db_connection() {
+    try {
+        $pdo = new PDO(
+            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+            DB_USER,
+            DB_PASS,
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+        return $pdo;
+    } catch (PDOException $e) {
+        error_log("Erro de conexão com banco de dados: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Função para inicializar o banco de dados
+function init_database() {
+    $pdo = get_db_connection();
+    if (!$pdo) {
+        return false;
+    }
+    
+    try {
+        // Criar tabela de jogos
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS games (
+                id VARCHAR(255) PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                image_url TEXT NOT NULL,
+                developer VARCHAR(255) DEFAULT 'Unknown',
+                version VARCHAR(50) DEFAULT 'v1.0',
+                engine VARCHAR(100) DEFAULT 'REN\'PY',
+                language VARCHAR(100) DEFAULT 'English',
+                rating DECIMAL(2,1) DEFAULT 4.5,
+                tags VARCHAR(500) DEFAULT 'Adult,Visual Novel',
+                download_url TEXT,
+                download_url_windows TEXT,
+                download_url_android TEXT,
+                download_url_linux TEXT,
+                download_url_mac TEXT,
+                os_windows BOOLEAN DEFAULT TRUE,
+                os_android BOOLEAN DEFAULT FALSE,
+                os_linux BOOLEAN DEFAULT FALSE,
+                os_mac BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        ");
+        
+        // Criar índices para melhor performance
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_games_title ON games(title)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_games_developer ON games(developer)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_games_engine ON games(engine)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_games_rating ON games(rating)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at)");
+        
+        // Inserir jogos de exemplo se não existirem
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM games");
+        $stmt->execute();
+        $game_count = $stmt->fetchColumn();
+        
+        if ($game_count == 0) {
+            $games = [
+                [
+                    'id' => 'game_renxplay_001',
+                    'title' => 'Visual Novel Adventure',
+                    'description' => 'Uma emocionante visual novel com múltiplas rotas e finais diferentes. Explore um mundo misterioso e tome decisões que mudarão o curso da história.',
+                    'image_url' => 'https://via.placeholder.com/400x225/3b82f6/ffffff?text=Visual+Novel+Adventure',
+                    'developer' => 'RenxPlay Studios',
+                    'version' => 'v2.1',
+                    'engine' => 'REN\'PY',
+                    'language' => 'Portuguese',
+                    'rating' => 4.8,
+                    'tags' => 'Visual Novel,Adventure,Romance',
+                    'download_url' => 'https://example.com/download/vn-adventure.zip',
+                    'os_windows' => true,
+                    'os_android' => false,
+                    'os_linux' => true,
+                    'os_mac' => false
+                ],
+                [
+                    'id' => 'game_renxplay_002',
+                    'title' => 'Puzzle Quest',
+                    'description' => 'Desafie sua mente com quebra-cabeças intrigantes e enigmas complexos. Cada nível traz novos desafios e mecânicas únicas.',
+                    'image_url' => 'https://via.placeholder.com/400x225/10b981/ffffff?text=Puzzle+Quest',
+                    'developer' => 'Brain Games Inc',
+                    'version' => 'v1.5',
+                    'engine' => 'Unity',
+                    'language' => 'English',
+                    'rating' => 4.6,
+                    'tags' => 'Puzzle,Brain Games,Strategy',
+                    'download_url' => 'https://example.com/download/puzzle-quest.zip',
+                    'os_windows' => true,
+                    'os_android' => true,
+                    'os_linux' => true,
+                    'os_mac' => true
+                ],
+                [
+                    'id' => 'game_renxplay_003',
+                    'title' => 'RPG Fantasy World',
+                    'description' => 'Entre em um mundo de fantasia épica com gráficos impressionantes e uma história envolvente. Crie seu personagem e embarque em uma jornada inesquecível.',
+                    'image_url' => 'https://via.placeholder.com/400x225/f59e0b/ffffff?text=RPG+Fantasy+World',
+                    'developer' => 'Epic Games Studio',
+                    'version' => 'v3.0',
+                    'engine' => 'RPG Maker',
+                    'language' => 'English',
+                    'rating' => 4.9,
+                    'tags' => 'RPG,Fantasy,Adventure',
+                    'download_url' => 'https://example.com/download/rpg-fantasy.zip',
+                    'os_windows' => true,
+                    'os_android' => false,
+                    'os_linux' => false,
+                    'os_mac' => true
+                ]
+            ];
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO games (
+                    id, title, description, image_url, developer, version, engine, language,
+                    rating, tags, download_url, os_windows, os_android, os_linux, os_mac
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            foreach ($games as $game) {
+                $stmt->execute([
+                    $game['id'], $game['title'], $game['description'], $game['image_url'],
+                    $game['developer'], $game['version'], $game['engine'], $game['language'],
+                    $game['rating'], $game['tags'], $game['download_url'],
+                    $game['os_windows'], $game['os_android'], $game['os_linux'], $game['os_mac']
+                ]);
+            }
+        }
+        
+        return true;
+    } catch (PDOException $e) {
+        error_log("Erro ao inicializar banco de dados: " . $e->getMessage());
+        return false;
+    }
+}
 
 // Inicializar banco de dados
 init_database();
@@ -14,20 +180,8 @@ if (isset($_GET['api'])) {
     $api = $_GET['api'];
     
     switch ($api) {
-        case 'auth/login':
-            handle_login();
-            break;
-        case 'auth/logout':
-            handle_logout();
-            break;
-        case 'auth/status':
-            handle_auth_status();
-            break;
         case 'games':
             handle_games();
-            break;
-        case 'admin/status':
-            handle_admin_status();
             break;
         case 'admin/games':
             handle_admin_games();
@@ -112,33 +266,6 @@ if (isset($_GET['api'])) {
         </div>
     </main>
 
-    <!-- Modal de Login Admin -->
-    <div class="modal" id="loginModal">
-        <div class="modal-content form-modal">
-            <div class="modal-header">
-                <h2>Login Administrativo</h2>
-                <button class="modal-close" id="closeLoginModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="loginForm" class="login-form">
-                    <div class="form-group">
-                        <label for="loginEmail">Email</label>
-                        <input type="email" id="loginEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Senha</label>
-                        <input type="password" id="loginPassword" name="password" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Entrar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Detalhes do Jogo -->
     <div class="modal" id="gameModal">
         <div class="modal-content">
@@ -168,10 +295,6 @@ if (isset($_GET['api'])) {
                     <button class="btn btn-primary" id="addGameBtn">
                         <i class="fas fa-plus"></i>
                         Adicionar Jogo
-                    </button>
-                    <button class="btn btn-secondary" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Sair
                     </button>
                 </div>
                 <div class="admin-games-grid" id="adminGamesGrid">
@@ -304,67 +427,6 @@ if (isset($_GET['api'])) {
 
 <?php
 // Funções de API
-function handle_login() {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $email = $input['email'] ?? '';
-    $password = $input['password'] ?? '';
-    
-    if (empty($email) || empty($password)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Email e senha são obrigatórios']);
-        return;
-    }
-    
-    $pdo = get_db_connection();
-    if (!$pdo) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro de conexão com banco de dados']);
-        return;
-    }
-    
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND is_admin = 1");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    
-    if ($user && password_verify($password, $user['password_hash'])) {
-        $_SESSION['admin_id'] = $user['id'];
-        $_SESSION['admin_email'] = $user['email'];
-        $_SESSION['admin_name'] = $user['name'];
-        
-        echo json_encode([
-            'success' => true,
-            'user' => [
-                'id' => $user['id'],
-                'email' => $user['email'],
-                'name' => $user['name']
-            ]
-        ]);
-    } else {
-        http_response_code(401);
-        echo json_encode(['error' => 'Credenciais inválidas']);
-    }
-}
-
-function handle_logout() {
-    session_destroy();
-    echo json_encode(['success' => true]);
-}
-
-function handle_auth_status() {
-    if (isset($_SESSION['admin_id'])) {
-        echo json_encode([
-            'authenticated' => true,
-            'user' => [
-                'id' => $_SESSION['admin_id'],
-                'email' => $_SESSION['admin_email'],
-                'name' => $_SESSION['admin_name']
-            ]
-        ]);
-    } else {
-        echo json_encode(['authenticated' => false]);
-    }
-}
-
 function handle_games() {
     $pdo = get_db_connection();
     if (!$pdo) {
@@ -428,30 +490,7 @@ function handle_games() {
     }
 }
 
-function handle_admin_status() {
-    if (!isset($_SESSION['admin_id'])) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Autenticação necessária']);
-        return;
-    }
-    
-    echo json_encode([
-        'isAdmin' => true,
-        'user' => [
-            'id' => $_SESSION['admin_id'],
-            'email' => $_SESSION['admin_email'],
-            'name' => $_SESSION['admin_name']
-        ]
-    ]);
-}
-
 function handle_admin_games() {
-    if (!isset($_SESSION['admin_id'])) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Autenticação necessária']);
-        return;
-    }
-    
     $pdo = get_db_connection();
     if (!$pdo) {
         http_response_code(500);

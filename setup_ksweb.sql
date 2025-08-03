@@ -1,16 +1,9 @@
--- Script SQL para configuração do banco de dados InfinityFree
--- Execute este script no phpMyAdmin da InfinityFree
+-- Script SQL para configuração do banco de dados KSWeb
+-- Execute este script no phpMyAdmin do KSWeb
 
--- Criar tabela de usuários
-CREATE TABLE IF NOT EXISTS users (
-    id VARCHAR(255) PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- Criar banco de dados se não existir
+CREATE DATABASE IF NOT EXISTS renxplay;
+USE renxplay;
 
 -- Criar tabela de jogos
 CREATE TABLE IF NOT EXISTS games (
@@ -37,12 +30,6 @@ CREATE TABLE IF NOT EXISTS games (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Inserir usuário admin padrão
--- Email: admin@renxplay.com
--- Senha: admin123
-INSERT IGNORE INTO users (id, email, password_hash, name, is_admin) VALUES
-('admin_renxplay_2024', 'admin@renxplay.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', TRUE);
-
 -- Inserir jogos de exemplo
 INSERT IGNORE INTO games (id, title, description, image_url, developer, version, engine, language, rating, tags, download_url, os_windows, os_android, os_linux, os_mac) VALUES
 ('game_renxplay_001', 'Visual Novel Adventure', 'Uma emocionante visual novel com múltiplas rotas e finais diferentes. Explore um mundo misterioso e tome decisões que mudarão o curso da história.', 'https://via.placeholder.com/400x225/3b82f6/ffffff?text=Visual+Novel+Adventure', 'RenxPlay Studios', 'v2.1', 'REN\'PY', 'Portuguese', 4.8, 'Visual Novel,Adventure,Romance', 'https://example.com/download/vn-adventure.zip', TRUE, FALSE, TRUE, FALSE),
@@ -55,13 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_games_developer ON games(developer);
 CREATE INDEX IF NOT EXISTS idx_games_engine ON games(engine);
 CREATE INDEX IF NOT EXISTS idx_games_rating ON games(rating);
 CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 
 -- Verificar se as tabelas foram criadas corretamente
-SELECT 'Tabela users criada com sucesso!' as status WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users');
 SELECT 'Tabela games criada com sucesso!' as status WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'games');
 
 -- Verificar dados inseridos
-SELECT 'Usuário admin criado:' as info, COUNT(*) as total FROM users WHERE is_admin = TRUE;
 SELECT 'Jogos de exemplo criados:' as info, COUNT(*) as total FROM games;
