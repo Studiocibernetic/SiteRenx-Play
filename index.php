@@ -4,8 +4,8 @@ session_start();
 // Incluir arquivo de configuração
 require_once 'config.php';
 
-// Inicializar banco de dados
-init_database();
+// Incluir classe Auth
+require_once 'auth.php';
 
 // Inicializar banco de dados
 init_database();
@@ -344,66 +344,42 @@ if (isset($_GET['api'])) {
 // Funções de API
 function handle_login() {
     $input = json_decode(file_get_contents('php://input'), true);
-    $email = $input['email'] ?? '';
+    $handle = $input['handle'] ?? $input['email'] ?? '';
     $password = $input['password'] ?? '';
     
-    if (empty($email) || empty($password)) {
+    if (empty($handle) || empty($password)) {
         http_response_code(400);
-        echo json_encode(['error' => 'Email e senha são obrigatórios']);
+        echo json_encode(['error' => 'Handle/email e senha são obrigatórios']);
         return;
     }
     
-    $pdo = get_db_connection();
-    if (!$pdo) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro de conexão com banco de dados']);
-        return;
-    }
+    $auth = new Auth();
+    $result = $auth->login($handle, $password);
     
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    
-    if ($user && password_verify($password, $user['password_hash'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_name'] = $user['name'];
-        $_SESSION['is_admin'] = $user['is_admin'];
-        
-        echo json_encode([
-            'success' => true,
-            'user' => [
-                'id' => $user['id'],
-                'email' => $user['email'],
-                'name' => $user['name'],
-                'is_admin' => $user['is_admin']
-            ]
-        ]);
+    if ($result['success']) {
+        echo json_encode($result);
     } else {
         http_response_code(401);
-        echo json_encode(['error' => 'Email ou senha incorretos']);
+        echo json_encode($result);
     }
 }
 
 function handle_logout() {
-    session_destroy();
-    echo json_encode(['success' => true]);
+    $auth = new Auth();
+    $result = $auth->logout();
+    
+    if ($result['success']) {
+        echo json_encode($result);
+    } else {
+        http_response_code(500);
+        echo json_encode($result);
+    }
 }
 
 function handle_auth_status() {
-    if (isset($_SESSION['user_id'])) {
-        echo json_encode([
-            'authenticated' => true,
-            'user' => [
-                'id' => $_SESSION['user_id'],
-                'email' => $_SESSION['user_email'],
-                'name' => $_SESSION['user_name'],
-                'is_admin' => $_SESSION['is_admin']
-            ]
-        ]);
-    } else {
-        echo json_encode(['authenticated' => false]);
-    }
+    $auth = new Auth();
+    $status = $auth->getAuthStatus();
+    echo json_encode($status);
 }
 
 function handle_register() {
@@ -418,36 +394,14 @@ function handle_register() {
         return;
     }
     
-    $pdo = get_db_connection();
-    if (!$pdo) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro de conexão com banco de dados']);
-        return;
-    }
+    $auth = new Auth();
+    $result = $auth->register($name, $email, $password);
     
-    // Verificar se email já existe
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Email já cadastrado']);
-        return;
-    }
-    
-    // Criar novo usuário
-    $user_id = uniqid('user_', true);
-    $password_hash = password_hash($password, PASSWORD_DEFAULT);
-    
-    $stmt = $pdo->prepare("
-        INSERT INTO users (id, email, password_hash, name) 
-        VALUES (?, ?, ?, ?)
-    ");
-    
-    if ($stmt->execute([$user_id, $email, $password_hash, $name])) {
-        echo json_encode(['success' => true, 'message' => 'Usuário criado com sucesso']);
+    if ($result['success']) {
+        echo json_encode($result);
     } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro ao criar usuário']);
+        http_response_code(400);
+        echo json_encode($result);
     }
 }
 
@@ -477,9 +431,10 @@ function handle_games() {
         }
         
         // Verificar se está nos favoritos
-        if (isset($_SESSION['user_id'])) {
+        $auth = new Auth();
+        if ($auth->isLoggedIn()) {
             $stmt = $pdo->prepare("SELECT * FROM favorites WHERE game_id = ? AND user_id = ?");
-            $stmt->execute([$game_id, $_SESSION['user_id']]);
+            $stmt->execute([$game_id, $auth->getCurrentUserId()]);
             $game['isFavorited'] = $stmt->fetch() !== false;
         } else {
             $game['isFavorited'] = false;
@@ -524,25 +479,25 @@ function handle_games() {
 }
 
 function handle_admin_status() {
-    if (!isset($_SESSION['user_id'])) {
+    $auth = new Auth();
+    
+    if (!$auth->isLoggedIn()) {
         http_response_code(401);
         echo json_encode(['error' => 'Autenticação necessária']);
         return;
     }
     
+    $user = $auth->getCurrentUser();
     echo json_encode([
-        'isAdmin' => $_SESSION['is_admin'] ?? false,
-        'user' => [
-            'id' => $_SESSION['user_id'],
-            'email' => $_SESSION['user_email'],
-            'name' => $_SESSION['user_name'],
-            'is_admin' => $_SESSION['is_admin']
-        ]
+        'isAdmin' => $auth->isAdmin(),
+        'user' => $user
     ]);
 }
 
 function handle_admin_games() {
-    if (!isset($_SESSION['user_id']) || !($_SESSION['is_admin'] ?? false)) {
+    $auth = new Auth();
+    
+    if (!$auth->isLoggedIn() || !$auth->isAdmin()) {
         http_response_code(403);
         echo json_encode(['error' => 'Acesso negado: Admin necessário']);
         return;
@@ -692,7 +647,9 @@ function handle_admin_games() {
 }
 
 function handle_favorites() {
-    if (!isset($_SESSION['user_id'])) {
+    $auth = new Auth();
+    
+    if (!$auth->isLoggedIn()) {
         http_response_code(401);
         echo json_encode(['error' => 'Autenticação necessária']);
         return;
@@ -724,7 +681,7 @@ function handle_favorites() {
         ");
         
         try {
-            $stmt->execute([$favorite_id, $game_id, $_SESSION['user_id']]);
+            $stmt->execute([$favorite_id, $game_id, $auth->getCurrentUserId()]);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             // Já existe nos favoritos
@@ -737,7 +694,7 @@ function handle_favorites() {
             WHERE game_id = ? AND user_id = ?
         ");
         
-        $stmt->execute([$game_id, $_SESSION['user_id']]);
+        $stmt->execute([$game_id, $auth->getCurrentUserId()]);
         echo json_encode(['success' => true]);
     }
 }
