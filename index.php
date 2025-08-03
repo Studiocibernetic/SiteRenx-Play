@@ -4,9 +4,6 @@ session_start();
 // Incluir arquivo de configuração
 require_once 'config.php';
 
-// Incluir classe Auth
-require_once 'auth.php';
-
 // Inicializar banco de dados
 init_database();
 
@@ -17,18 +14,6 @@ if (isset($_GET['api'])) {
     $api = $_GET['api'];
     
     switch ($api) {
-        case 'auth/login':
-            handle_login();
-            break;
-        case 'auth/logout':
-            handle_logout();
-            break;
-        case 'auth/status':
-            handle_auth_status();
-            break;
-        case 'auth/register':
-            handle_register();
-            break;
         case 'games':
             handle_games();
             break;
@@ -37,9 +22,6 @@ if (isset($_GET['api'])) {
             break;
         case 'admin/games':
             handle_admin_games();
-            break;
-        case 'favorites':
-            handle_favorites();
             break;
         default:
             http_response_code(404);
@@ -118,65 +100,7 @@ if (isset($_GET['api'])) {
         </div>
     </main>
 
-    <!-- Login Modal -->
-    <div class="modal" id="loginModal">
-        <div class="modal-content form-modal">
-            <div class="modal-header">
-                <h2>Login</h2>
-                <button class="modal-close" id="closeLoginModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="loginForm" class="login-form">
-                    <div class="form-group">
-                        <label for="loginEmail">Email</label>
-                        <input type="email" id="loginEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Senha</label>
-                        <input type="password" id="loginPassword" name="password" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Entrar</button>
-                        <button type="button" class="btn btn-secondary" id="showRegisterBtn">Criar Conta</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- Register Modal -->
-    <div class="modal" id="registerModal">
-        <div class="modal-content form-modal">
-            <div class="modal-header">
-                <h2>Criar Conta</h2>
-                <button class="modal-close" id="closeRegisterModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="registerForm" class="login-form">
-                    <div class="form-group">
-                        <label for="registerName">Nome</label>
-                        <input type="text" id="registerName" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerEmail">Email</label>
-                        <input type="email" id="registerEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="registerPassword">Senha</label>
-                        <input type="password" id="registerPassword" name="password" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="registerSubmitBtn">Criar Conta</button>
-                        <button type="button" class="btn btn-secondary" id="showLoginBtn">Já tenho conta</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- Game Detail Modal -->
     <div class="modal" id="gameModal">
@@ -342,69 +266,7 @@ if (isset($_GET['api'])) {
 
 <?php
 // Funções de API
-function handle_login() {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $handle = $input['handle'] ?? $input['email'] ?? '';
-    $password = $input['password'] ?? '';
-    
-    if (empty($handle) || empty($password)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Handle/email e senha são obrigatórios']);
-        return;
-    }
-    
-    $auth = new Auth();
-    $result = $auth->login($handle, $password);
-    
-    if ($result['success']) {
-        echo json_encode($result);
-    } else {
-        http_response_code(401);
-        echo json_encode($result);
-    }
-}
 
-function handle_logout() {
-    $auth = new Auth();
-    $result = $auth->logout();
-    
-    if ($result['success']) {
-        echo json_encode($result);
-    } else {
-        http_response_code(500);
-        echo json_encode($result);
-    }
-}
-
-function handle_auth_status() {
-    $auth = new Auth();
-    $status = $auth->getAuthStatus();
-    echo json_encode($status);
-}
-
-function handle_register() {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $name = $input['name'] ?? '';
-    $email = $input['email'] ?? '';
-    $password = $input['password'] ?? '';
-    $handle = $input['handle'] ?? null;
-    
-    if (empty($name) || empty($email) || empty($password)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Nome, email e senha são obrigatórios']);
-        return;
-    }
-    
-    $auth = new Auth();
-    $result = $auth->register($name, $email, $password, $handle);
-    
-    if ($result['success']) {
-        echo json_encode($result);
-    } else {
-        http_response_code(400);
-        echo json_encode($result);
-    }
-}
 
 function handle_games() {
     $pdo = get_db_connection();
@@ -431,15 +293,8 @@ function handle_games() {
             return;
         }
         
-        // Verificar se está nos favoritos
-        $auth = new Auth();
-        if ($auth->isLoggedIn()) {
-            $stmt = $pdo->prepare("SELECT * FROM favorites WHERE game_id = ? AND user_id = ?");
-            $stmt->execute([$game_id, $auth->getCurrentUserId()]);
-            $game['isFavorited'] = $stmt->fetch() !== false;
-        } else {
-            $game['isFavorited'] = false;
-        }
+        // Sem verificação de favoritos - removido sistema de autenticação
+        $game['isFavorited'] = false;
         
         echo json_encode($game);
     } else {
@@ -480,29 +335,15 @@ function handle_games() {
 }
 
 function handle_admin_status() {
-    $auth = new Auth();
-    
-    if (!$auth->isLoggedIn()) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Autenticação necessária']);
-        return;
-    }
-    
-    $user = $auth->getCurrentUser();
+    // Sempre retorna true para admin - sem autenticação necessária
     echo json_encode([
-        'isAdmin' => true, // Todos os usuários logados são considerados admin
-        'user' => $user
+        'isAdmin' => true,
+        'user' => null
     ]);
 }
 
 function handle_admin_games() {
-    $auth = new Auth();
-    
-    if (!$auth->isLoggedIn()) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Autenticação necessária']);
-        return;
-    }
+    // Sem verificação de autenticação - todos podem acessar
     
     $pdo = get_db_connection();
     if (!$pdo) {
@@ -647,56 +488,5 @@ function handle_admin_games() {
     }
 }
 
-function handle_favorites() {
-    $auth = new Auth();
-    
-    if (!$auth->isLoggedIn()) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Autenticação necessária']);
-        return;
-    }
-    
-    $pdo = get_db_connection();
-    if (!$pdo) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro de conexão com banco de dados']);
-        return;
-    }
-    
-    $game_id = $_GET['id'] ?? null;
-    if (!$game_id) {
-        http_response_code(400);
-        echo json_encode(['error' => 'ID do jogo é obrigatório']);
-        return;
-    }
-    
-    $method = $_SERVER['REQUEST_METHOD'];
-    
-    if ($method === 'POST') {
-        // Adicionar aos favoritos
-        $favorite_id = uniqid('fav_', true);
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO favorites (id, game_id, user_id) 
-            VALUES (?, ?, ?)
-        ");
-        
-        try {
-            $stmt->execute([$favorite_id, $game_id, $auth->getCurrentUserId()]);
-            echo json_encode(['success' => true]);
-        } catch (PDOException $e) {
-            // Já existe nos favoritos
-            echo json_encode(['success' => true]);
-        }
-    } elseif ($method === 'DELETE') {
-        // Remover dos favoritos
-        $stmt = $pdo->prepare("
-            DELETE FROM favorites 
-            WHERE game_id = ? AND user_id = ?
-        ");
-        
-        $stmt->execute([$game_id, $auth->getCurrentUserId()]);
-        echo json_encode(['success' => true]);
-    }
-}
+
 ?>

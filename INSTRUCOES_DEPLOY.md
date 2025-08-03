@@ -46,13 +46,11 @@ Certifique-se que os arquivos têm permissão **644**:
 ### 4. Testar o Site
 
 1. **Acesse seu site**: `https://seu-site.epizy.com`
-2. **Faça login**: `admin` / `admin123`
-3. **Teste as funcionalidades**:
-   - ✅ Login/Logout
-   - ✅ Menu de usuário
-   - ✅ Admin Panel
+2. **Teste as funcionalidades**:
+   - ✅ Admin Panel (acesso direto)
    - ✅ CRUD de jogos
-   - ✅ Favoritos
+   - ✅ Postagem livre de jogos
+   - ✅ Gerenciamento completo
 
 ## 🔧 Troubleshooting
 
@@ -93,27 +91,20 @@ Após executar o SQL, você terá:
 - ✅ `chat_messages` - Mensagens de chat
 
 ### Dados Inseridos
-- ✅ **Admin**: `admin` / `admin123`
 - ✅ **3 jogos de exemplo**
 - ✅ **4 imagens de exemplo**
 - ✅ **Índices de performance**
 
 ## 🎯 Funcionalidades Disponíveis
 
-### Para Usuários
-- ✅ **Login/Logout** com sessões persistentes
-- ✅ **Registro** de novas contas
-- ✅ **Menu personalizado** com nome do usuário
-- ✅ **Favoritos** - adicionar/remover jogos
+### Para Todos os Usuários
+- ✅ **Admin Panel** - acesso direto sem login
+- ✅ **CRUD completo** de jogos
+- ✅ **Postagem livre** de jogos
 - ✅ **Busca** de jogos
 - ✅ **Paginação** automática
 
-### Para Usuários Logados
-- ✅ **Admin Panel** - acesso para todos os usuários logados
-- ✅ **CRUD completo** de jogos
-- ✅ **Upload de imagens** (URL)
-- ✅ **Postagem livre** de jogos
-- ✅ **Gestão de conteúdo** completa
+
 
 ## 🔒 Segurança
 

@@ -36,7 +36,7 @@ const showLoginBtn = document.getElementById('showLoginBtn');
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     initializeTheme();
-    checkAuthStatus();
+    updateAuthUI();
     loadGames();
     setupEventListeners();
 });
@@ -108,23 +108,6 @@ function setupEventListeners() {
     // Form submission
     gameForm.addEventListener('submit', handleGameSubmit);
 
-    // Login/Register forms
-    loginForm.addEventListener('submit', handleLogin);
-    registerForm.addEventListener('submit', handleRegister);
-    
-    // Login/Register modal buttons
-    loginBtn.addEventListener('click', () => showModal(loginModal));
-    closeLoginModal.addEventListener('click', () => hideModal(loginModal));
-    closeRegisterModal.addEventListener('click', () => hideModal(registerModal));
-    showRegisterBtn.addEventListener('click', () => {
-        hideModal(loginModal);
-        showModal(registerModal);
-    });
-    showLoginBtn.addEventListener('click', () => {
-        hideModal(registerModal);
-        showModal(loginModal);
-    });
-
     // Modal backdrop clicks
     gameModal.addEventListener('click', (e) => {
         if (e.target === gameModal) hideModal(gameModal);
@@ -134,12 +117,6 @@ function setupEventListeners() {
     });
     gameFormModal.addEventListener('click', (e) => {
         if (e.target === gameFormModal) hideModal(gameFormModal);
-    });
-    loginModal.addEventListener('click', (e) => {
-        if (e.target === loginModal) hideModal(loginModal);
-    });
-    registerModal.addEventListener('click', (e) => {
-        if (e.target === registerModal) hideModal(registerModal);
     });
 }
 
@@ -420,164 +397,47 @@ function selectPlatform(platform, url) {
     downloadBtn.onclick = () => window.open(url, '_blank');
 }
 
-// Authentication functions
-async function checkAuthStatus() {
-    try {
-        const status = await apiCall('auth/status');
-        if (status.authenticated) {
-            currentUser = status.user;
-            isAdmin = true; // Todos os usuários logados são admin
-            updateAuthUI();
-        } else {
-            currentUser = null;
-            isAdmin = false;
-            updateAuthUI();
-        }
-    } catch (error) {
-        console.error('Failed to check auth status:', error);
-        currentUser = null;
-        isAdmin = false;
-        updateAuthUI();
-    }
-}
-
+// Admin panel always available
 function updateAuthUI() {
-    if (currentUser) {
-        // Usuário logado
-        loginBtn.innerHTML = `
-            <div class="user-menu">
-                <span>${currentUser.name}</span>
-                <i class="fas fa-chevron-down"></i>
+    // Sempre mostrar o botão Admin Panel
+    loginBtn.innerHTML = `
+        <div class="user-menu">
+            <span>Admin Panel</span>
+            <i class="fas fa-cog"></i>
+        </div>
+    `;
+    loginBtn.className = 'user-btn';
+    
+    // Adicionar menu dropdown
+    const userMenu = document.createElement('div');
+    userMenu.className = 'user-dropdown';
+    userMenu.innerHTML = `
+        <div class="user-dropdown-content">
+            <div class="user-info">
+                <strong>Admin Panel</strong>
+                <span>Gerenciar jogos</span>
             </div>
-        `;
-        loginBtn.className = 'user-btn';
-        
-        // Adicionar menu dropdown
-        const userMenu = document.createElement('div');
-        userMenu.className = 'user-dropdown';
-        userMenu.innerHTML = `
-            <div class="user-dropdown-content">
-                <div class="user-info">
-                    <strong>${currentUser.name}</strong>
-                    <span>${currentUser.email}</span>
-                </div>
-                <button class="dropdown-item admin-btn"><i class="fas fa-cog"></i> Admin Panel</button>
-                <button class="dropdown-item logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</button>
-            </div>
-        `;
-        
-        // Remover menu anterior se existir
-        const existingMenu = document.querySelector('.user-dropdown');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
-        
-        loginBtn.parentNode.appendChild(userMenu);
-        
-        // Event listeners para o menu
-        const logoutBtn = userMenu.querySelector('.logout-btn');
-        logoutBtn.addEventListener('click', handleLogout);
-        
-        const adminBtn = userMenu.querySelector('.admin-btn');
-        adminBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showAdminPanel();
-        });
-        
-    } else {
-        // Usuário não logado
-        loginBtn.innerHTML = 'Login';
-        loginBtn.className = 'login-btn';
-        
-        // Remover menu dropdown se existir
-        const existingMenu = document.querySelector('.user-dropdown');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
+            <button class="dropdown-item admin-btn"><i class="fas fa-cog"></i> Admin Panel</button>
+        </div>
+    `;
+    
+    // Remover menu anterior se existir
+    const existingMenu = document.querySelector('.user-dropdown');
+    if (existingMenu) {
+        existingMenu.remove();
     }
+    
+    loginBtn.parentNode.appendChild(userMenu);
+    
+    // Event listeners para o menu
+    const adminBtn = userMenu.querySelector('.admin-btn');
+    adminBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAdminPanel();
+    });
 }
 
-async function handleLogin(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(loginForm);
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    try {
-        const response = await apiCall('auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (response.success) {
-            currentUser = response.user;
-            isAdmin = true; // Todos os usuários logados são admin
-            updateAuthUI();
-            hideModal(loginModal);
-            loginForm.reset();
-            showSuccess('Login realizado com sucesso!');
-        }
-    } catch (error) {
-        console.error('Login failed:', error);
-        showError(error.message || 'Erro ao fazer login');
-    }
-}
-
-async function handleRegister(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(registerForm);
-    const name = formData.get('name');
-    const email = formData.get('email');
-    const password = formData.get('password');
-    
-    try {
-        const response = await apiCall('auth/register', {
-            method: 'POST',
-            body: JSON.stringify({ name, email, password })
-        });
-        
-        if (response.success) {
-            hideModal(registerModal);
-            registerForm.reset();
-            showSuccess('Conta criada com sucesso! Faça login para continuar.');
-            showModal(loginModal);
-        }
-    } catch (error) {
-        console.error('Register failed:', error);
-        showError(error.message || 'Erro ao criar conta');
-    }
-}
-
-async function handleLogout() {
-    try {
-        await apiCall('auth/logout', { method: 'POST' });
-        currentUser = null;
-        isAdmin = false;
-        updateAuthUI();
-        showSuccess('Logout realizado com sucesso!');
-    } catch (error) {
-        console.error('Logout failed:', error);
-        showError('Erro ao fazer logout');
-    }
-}
-
-// Admin functions
-async function checkAdminStatus() {
-    if (!currentUser) return;
-    
-    try {
-        const status = await apiCall('admin/status');
-        isAdmin = true; // Todos os usuários logados são admin
-        updateAuthUI();
-    } catch (error) {
-        console.error('Failed to check admin status:', error);
-        isAdmin = false;
-        updateAuthUI();
-    }
-}
-
+// Admin panel functions
 async function showAdminPanel() {
     try {
         const games = await apiCall('admin/games');
@@ -588,6 +448,8 @@ async function showAdminPanel() {
         showError('Failed to load admin panel');
     }
 }
+
+
 
 function renderAdminGames(games) {
     const adminGamesGrid = document.getElementById('adminGamesGrid');
@@ -799,34 +661,7 @@ function showSuccess(message) {
 
 // Remove old authentication functions - replaced with new ones above
 
-// Favorites
-async function toggleFavorite(gameId) {
-    if (!currentUser) {
-        showError('Faça login para usar favoritos');
-        return;
-    }
-    
-    try {
-        // Primeiro, verificar se já está nos favoritos
-        const game = await apiCall(`games/${gameId}`);
-        
-        if (game.isFavorited) {
-            // Remover dos favoritos
-            await apiCall(`favorites/${gameId}`, { method: 'DELETE' });
-            showSuccess('Removido dos favoritos');
-        } else {
-            // Adicionar aos favoritos
-            await apiCall(`favorites/${gameId}`, { method: 'POST' });
-            showSuccess('Adicionado aos favoritos');
-        }
-        
-        // Recarregar detalhes do jogo para atualizar status
-        showGameDetail(gameId);
-    } catch (error) {
-        console.error('Failed to toggle favorite:', error);
-        showError('Erro ao atualizar favoritos');
-    }
-}
+
 
 // Download function
 function downloadGame(gameId) {
