@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// Incluir arquivo de configuração
+// Incluir configurações
 require_once 'config.php';
 
 // Inicializar banco de dados
@@ -14,6 +14,15 @@ if (isset($_GET['api'])) {
     $api = $_GET['api'];
     
     switch ($api) {
+        case 'auth/login':
+            handle_login();
+            break;
+        case 'auth/logout':
+            handle_logout();
+            break;
+        case 'auth/status':
+            handle_auth_status();
+            break;
         case 'games':
             handle_games();
             break;
@@ -25,7 +34,7 @@ if (isset($_GET['api'])) {
             break;
         default:
             http_response_code(404);
-            echo json_encode(['error' => 'API endpoint not found']);
+            echo json_encode(['error' => 'API endpoint não encontrado']);
     }
     exit;
 }
@@ -42,7 +51,7 @@ if (isset($_GET['api'])) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Navegação -->
     <nav class="navbar">
         <div class="container">
             <div class="nav-content">
@@ -64,196 +73,225 @@ if (isset($_GET['api'])) {
                             </button>
                         </div>
                     </div>
-                    <button class="login-btn" id="loginBtn">Login</button>
+                    <button class="admin-btn" id="adminBtn">
+                        <i class="fas fa-cog"></i>
+                        Admin
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- Conteúdo Principal -->
     <main class="main-content">
         <div class="container">
-            <!-- Search Section -->
+            <!-- Seção de Busca -->
             <div class="search-section">
                 <div class="search-container">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="search" id="searchInput" placeholder="Search games..." class="search-input">
+                    <input type="search" id="searchInput" placeholder="Buscar jogos..." class="search-input">
                 </div>
             </div>
 
-            <!-- Games Grid -->
+            <!-- Grid de Jogos -->
             <div class="games-grid" id="gamesGrid">
-                <!-- Games will be loaded here -->
+                <!-- Jogos serão carregados aqui -->
             </div>
 
-            <!-- Pagination -->
+            <!-- Paginação -->
             <div class="pagination" id="pagination">
-                <!-- Pagination will be loaded here -->
+                <!-- Paginação será carregada aqui -->
             </div>
 
-            <!-- Loading State -->
+            <!-- Estado de Carregamento -->
             <div class="loading-skeleton" id="loadingSkeleton" style="display: none;">
                 <div class="skeleton-grid">
-                    <!-- Skeleton cards will be generated here -->
+                    <!-- Cards skeleton serão gerados aqui -->
                 </div>
             </div>
         </div>
     </main>
 
-
-
-    <!-- Game Detail Modal -->
-    <div class="modal" id="gameModal">
-        <div class="modal-content">
+    <!-- Modal de Login Admin -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content form-modal">
             <div class="modal-header">
-                <button class="modal-close" id="closeModal">
+                <h2>Login Administrativo</h2>
+                <button class="modal-close" id="closeLoginModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Game details will be loaded here -->
+            <div class="modal-body">
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" name="password" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Entrar</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Admin Panel Modal -->
+    <!-- Modal de Detalhes do Jogo -->
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="gameTitle">Detalhes do Jogo</h2>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="gameModalBody">
+                <!-- Conteúdo do jogo será carregado aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Painel Admin -->
     <div class="modal" id="adminModal">
         <div class="modal-content admin-modal">
             <div class="modal-header">
-                <h2>Admin Dashboard</h2>
+                <h2>Painel Administrativo</h2>
                 <button class="modal-close" id="closeAdminModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="admin-controls">
+                <div class="admin-header">
                     <button class="btn btn-primary" id="addGameBtn">
                         <i class="fas fa-plus"></i>
-                        Add Game
+                        Adicionar Jogo
+                    </button>
+                    <button class="btn btn-secondary" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
                     </button>
                 </div>
                 <div class="admin-games-grid" id="adminGamesGrid">
-                    <!-- Admin games will be loaded here -->
+                    <!-- Jogos do admin serão carregados aqui -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Game Form Modal -->
+    <!-- Modal do Formulário de Jogo -->
     <div class="modal" id="gameFormModal">
         <div class="modal-content form-modal">
             <div class="modal-header">
-                <h2 id="formTitle">Create New Game</h2>
+                <h2 id="formTitle">Adicionar Jogo</h2>
                 <button class="modal-close" id="closeFormModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <form id="gameForm" class="game-form">
-                    <div class="form-grid">
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="title">📌 Título</label>
+                            <label for="title">Título *</label>
                             <input type="text" id="title" name="title" required>
                         </div>
                         <div class="form-group">
-                            <label for="developer">🛠️ Desenvolvedor</label>
-                            <input type="text" id="developer" name="developer">
+                            <label for="developer">Desenvolvedor</label>
+                            <input type="text" id="developer" name="developer" value="Unknown">
                         </div>
                     </div>
-
-                    <div>
-                        <label for="description">🧠 Descrição</label>
-                        <textarea id="description" name="description" rows="4" required></textarea>
+                    
+                    <div class="form-group">
+                        <label for="description">Descrição *</label>
+                        <textarea id="description" name="description" rows="3" required></textarea>
                     </div>
-
-                    <div>
-                        <label for="imageUrl">🖼️ Imagem URL</label>
+                    
+                    <div class="form-group">
+                        <label for="imageUrl">URL da Imagem *</label>
                         <input type="url" id="imageUrl" name="imageUrl" required>
                     </div>
-
-                    <div class="form-grid">
+                    
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="version">💻 Versão</label>
-                            <input type="text" id="version" name="version">
+                            <label for="version">Versão</label>
+                            <input type="text" id="version" name="version" value="v1.0">
                         </div>
                         <div class="form-group">
-                            <label for="engine">🧠 Engine</label>
-                            <select id="engine" name="engine">
-                                <option value="REN'PY">REN'PY</option>
-                                <option value="Unity">Unity</option>
-                                <option value="RPG Maker">RPG Maker</option>
-                                <option value="HTML">HTML</option>
-                                <option value="Flash">Flash</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="language">🌐 Língua</label>
-                            <input type="text" id="language" name="language">
+                            <label for="engine">Engine</label>
+                            <input type="text" id="engine" name="engine" value="REN'PY">
                         </div>
                     </div>
-
-                    <div>
-                        <label>💽 Sistemas Operacionais</label>
-                        <div class="os-checkboxes">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="language">Idioma</label>
+                            <input type="text" id="language" name="language" value="English">
+                        </div>
+                        <div class="form-group">
+                            <label for="rating">Avaliação</label>
+                            <input type="number" id="rating" name="rating" min="0" max="5" step="0.1" value="4.5">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tags">Tags</label>
+                        <input type="text" id="tags" name="tags" value="Adult,Visual Novel">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="downloadUrl">URL de Download</label>
+                        <input type="url" id="downloadUrl" name="downloadUrl">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="downloadUrlWindows">Download Windows</label>
+                            <input type="url" id="downloadUrlWindows" name="downloadUrlWindows">
+                        </div>
+                        <div class="form-group">
+                            <label for="downloadUrlAndroid">Download Android</label>
+                            <input type="url" id="downloadUrlAndroid" name="downloadUrlAndroid">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="downloadUrlLinux">Download Linux</label>
+                            <input type="url" id="downloadUrlLinux" name="downloadUrlLinux">
+                        </div>
+                        <div class="form-group">
+                            <label for="downloadUrlMac">Download Mac</label>
+                            <input type="url" id="downloadUrlMac" name="downloadUrlMac">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Plataformas Suportadas</label>
+                        <div class="checkbox-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" name="osWindows" checked>
-                                <span>Windows</span>
+                                Windows
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" name="osAndroid">
-                                <span>Android</span>
+                                Android
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" name="osLinux">
-                                <span>Linux</span>
+                                Linux
                             </label>
                             <label class="checkbox-label">
                                 <input type="checkbox" name="osMac">
-                                <span>Mac</span>
+                                Mac
                             </label>
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="rating">🌟 Nota (1-5)</label>
-                        <input type="number" id="rating" name="rating" min="1" max="5" step="0.1" value="4.5">
-                    </div>
-
-                    <div class="form-group">
-                        <label>📥 Links de Download por Plataforma</label>
-                        <div class="download-links">
-                            <div class="form-group">
-                                <label for="downloadUrlWindows">🪟 Windows</label>
-                                <input type="url" id="downloadUrlWindows" name="downloadUrlWindows" placeholder="Link para download Windows">
-                            </div>
-                            <div class="form-group">
-                                <label for="downloadUrlAndroid">🤖 Android</label>
-                                <input type="url" id="downloadUrlAndroid" name="downloadUrlAndroid" placeholder="Link para download Android">
-                            </div>
-                            <div class="form-group">
-                                <label for="downloadUrlLinux">🐧 Linux</label>
-                                <input type="url" id="downloadUrlLinux" name="downloadUrlLinux" placeholder="Link para download Linux">
-                            </div>
-                            <div class="form-group">
-                                <label for="downloadUrlMac">🍎 Mac</label>
-                                <input type="url" id="downloadUrlMac" name="downloadUrlMac" placeholder="Link para download Mac">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="downloadUrl">📥 Link Genérico (opcional)</label>
-                            <input type="url" id="downloadUrl" name="downloadUrl" placeholder="Link genérico de download">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tags">🏷️ Tags (separadas por vírgula)</label>
-                        <input type="text" id="tags" name="tags" value="Adult,Visual Novel">
-                    </div>
-
+                    
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="submitBtn">Criar Jogo</button>
-                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Adicionar Jogo</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideModal(gameFormModal)">Cancelar</button>
                     </div>
                 </form>
             </div>
@@ -266,7 +304,66 @@ if (isset($_GET['api'])) {
 
 <?php
 // Funções de API
+function handle_login() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $email = $input['email'] ?? '';
+    $password = $input['password'] ?? '';
+    
+    if (empty($email) || empty($password)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Email e senha são obrigatórios']);
+        return;
+    }
+    
+    $pdo = get_db_connection();
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Erro de conexão com banco de dados']);
+        return;
+    }
+    
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND is_admin = 1");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+    
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['admin_id'] = $user['id'];
+        $_SESSION['admin_email'] = $user['email'];
+        $_SESSION['admin_name'] = $user['name'];
+        
+        echo json_encode([
+            'success' => true,
+            'user' => [
+                'id' => $user['id'],
+                'email' => $user['email'],
+                'name' => $user['name']
+            ]
+        ]);
+    } else {
+        http_response_code(401);
+        echo json_encode(['error' => 'Credenciais inválidas']);
+    }
+}
 
+function handle_logout() {
+    session_destroy();
+    echo json_encode(['success' => true]);
+}
+
+function handle_auth_status() {
+    if (isset($_SESSION['admin_id'])) {
+        echo json_encode([
+            'authenticated' => true,
+            'user' => [
+                'id' => $_SESSION['admin_id'],
+                'email' => $_SESSION['admin_email'],
+                'name' => $_SESSION['admin_name']
+            ]
+        ]);
+    } else {
+        echo json_encode(['authenticated' => false]);
+    }
+}
 
 function handle_games() {
     $pdo = get_db_connection();
@@ -292,9 +389,6 @@ function handle_games() {
             echo json_encode(['error' => 'Jogo não encontrado']);
             return;
         }
-        
-        // Sem verificação de favoritos - removido sistema de autenticação
-        $game['isFavorited'] = false;
         
         echo json_encode($game);
     } else {
@@ -335,15 +429,28 @@ function handle_games() {
 }
 
 function handle_admin_status() {
-    // Sempre retorna true para admin - sem autenticação necessária
+    if (!isset($_SESSION['admin_id'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Autenticação necessária']);
+        return;
+    }
+    
     echo json_encode([
         'isAdmin' => true,
-        'user' => null
+        'user' => [
+            'id' => $_SESSION['admin_id'],
+            'email' => $_SESSION['admin_email'],
+            'name' => $_SESSION['admin_name']
+        ]
     ]);
 }
 
 function handle_admin_games() {
-    // Sem verificação de autenticação - todos podem acessar
+    if (!isset($_SESSION['admin_id'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Autenticação necessária']);
+        return;
+    }
     
     $pdo = get_db_connection();
     if (!$pdo) {
@@ -476,10 +583,6 @@ function handle_admin_games() {
             return;
         }
         
-        // Excluir registros relacionados
-        $stmt = $pdo->prepare("DELETE FROM favorites WHERE game_id = ?");
-        $stmt->execute([$game_id]);
-        
         // Excluir jogo
         $stmt = $pdo->prepare("DELETE FROM games WHERE id = ?");
         $stmt->execute([$game_id]);
@@ -487,6 +590,4 @@ function handle_admin_games() {
         echo json_encode(['success' => true]);
     }
 }
-
-
 ?>

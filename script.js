@@ -1,152 +1,166 @@
-// Global state
-let currentUser = null;
-let isAdmin = false;
+// Variáveis globais
 let currentPage = 1;
 let searchQuery = '';
 let debouncedSearch = '';
-let selectedPlatform = '';
+let currentUser = null;
+let isAdmin = false;
 
-// DOM Elements
-const gamesGrid = document.getElementById('gamesGrid');
+// Elementos DOM
 const searchInput = document.getElementById('searchInput');
+const gamesGrid = document.getElementById('gamesGrid');
 const pagination = document.getElementById('pagination');
 const loadingSkeleton = document.getElementById('loadingSkeleton');
-const gameModal = document.getElementById('gameModal');
-const modalBody = document.getElementById('modalBody');
-const closeModal = document.getElementById('closeModal');
-const adminModal = document.getElementById('adminModal');
-const closeAdminModal = document.getElementById('closeAdminModal');
-const gameFormModal = document.getElementById('gameFormModal');
-const closeFormModal = document.getElementById('closeFormModal');
-const gameForm = document.getElementById('gameForm');
-const addGameBtn = document.getElementById('addGameBtn');
-const loginBtn = document.getElementById('loginBtn');
 const themeToggle = document.querySelector('.theme-toggle');
 
-// Login/Register elements
+// Modais
+const gameModal = document.getElementById('gameModal');
+const adminModal = document.getElementById('adminModal');
 const loginModal = document.getElementById('loginModal');
-const registerModal = document.getElementById('registerModal');
-const closeLoginModal = document.getElementById('closeLoginModal');
-const closeRegisterModal = document.getElementById('closeRegisterModal');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-const showRegisterBtn = document.getElementById('showRegisterBtn');
-const showLoginBtn = document.getElementById('showLoginBtn');
+const gameFormModal = document.getElementById('gameFormModal');
 
-// Initialize app
+// Botões de fechar
+const closeModal = document.getElementById('closeModal');
+const closeAdminModal = document.getElementById('closeAdminModal');
+const closeFormModal = document.getElementById('closeFormModal');
+const closeLoginModal = document.getElementById('closeLoginModal');
+
+// Botões admin
+const adminBtn = document.getElementById('adminBtn');
+const addGameBtn = document.getElementById('addGameBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Formulários
+const loginForm = document.getElementById('loginForm');
+const gameForm = document.getElementById('gameForm');
+
+// Inicializar aplicação
 document.addEventListener('DOMContentLoaded', function() {
-    initializeTheme();
-    updateAuthUI();
-    loadGames();
-    setupEventListeners();
+    inicializarTema();
+    verificarStatusAdmin();
+    carregarJogos();
+    configurarEventListeners();
 });
 
-// Theme management
-function initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldUseDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
+// Gerenciamento de tema
+function inicializarTema() {
+    const temaSalvo = localStorage.getItem('tema');
+    const sistemaPrefereEscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const deveUsarEscuro = temaSalvo === 'escuro' || (!temaSalvo && sistemaPrefereEscuro);
     
-    if (shouldUseDark) {
-        document.documentElement.classList.add('dark');
-        updateThemeToggle(true);
+    if (deveUsarEscuro) {
+        document.documentElement.classList.add('escuro');
+        atualizarToggleTema(true);
     }
 }
 
-function toggleTheme() {
-    const isDark = document.documentElement.classList.contains('dark');
-    const newTheme = !isDark;
+function alternarTema() {
+    const ehEscuro = document.documentElement.classList.contains('escuro');
+    const novoTema = !ehEscuro;
     
-    if (newTheme) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
+    if (novoTema) {
+        document.documentElement.classList.add('escuro');
+        localStorage.setItem('tema', 'escuro');
     } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
+        document.documentElement.classList.remove('escuro');
+        localStorage.setItem('tema', 'claro');
     }
     
-    updateThemeToggle(newTheme);
+    atualizarToggleTema(novoTema);
 }
 
-function updateThemeToggle(isDark) {
-    const icon = themeToggle.querySelector('i');
-    const text = themeToggle.querySelector('span') || themeToggle.lastChild;
+function atualizarToggleTema(ehEscuro) {
+    const icone = themeToggle.querySelector('i');
+    const texto = themeToggle.querySelector('span') || themeToggle.lastChild;
     
-    if (isDark) {
-        icon.className = 'fas fa-sun';
-        text.textContent = 'Tema Claro';
+    if (ehEscuro) {
+        icone.className = 'fas fa-sun';
+        texto.textContent = 'Tema Claro';
     } else {
-        icon.className = 'fas fa-moon';
-        text.textContent = 'Tema Escuro';
+        icone.className = 'fas fa-moon';
+        texto.textContent = 'Tema Escuro';
     }
 }
 
-// Event listeners
-function setupEventListeners() {
-    // Search
+// Configurar event listeners
+function configurarEventListeners() {
+    // Busca
     searchInput.addEventListener('input', function(e) {
         searchQuery = e.target.value;
         clearTimeout(window.searchTimeout);
         window.searchTimeout = setTimeout(() => {
             debouncedSearch = searchQuery;
             currentPage = 1;
-            loadGames();
+            carregarJogos();
         }, 500);
     });
 
-    // Theme toggle
-    themeToggle.addEventListener('click', toggleTheme);
+    // Toggle de tema
+    themeToggle.addEventListener('click', alternarTema);
 
-    // Modal close buttons
-    closeModal.addEventListener('click', () => hideModal(gameModal));
-    closeAdminModal.addEventListener('click', () => hideModal(adminModal));
-    closeFormModal.addEventListener('click', () => hideModal(gameFormModal));
+    // Botões de fechar modais
+    closeModal.addEventListener('click', () => esconderModal(gameModal));
+    closeAdminModal.addEventListener('click', () => esconderModal(adminModal));
+    closeFormModal.addEventListener('click', () => esconderModal(gameFormModal));
+    closeLoginModal.addEventListener('click', () => esconderModal(loginModal));
 
-    // Admin button
-    addGameBtn.addEventListener('click', () => showGameForm());
+    // Botões admin
+    adminBtn.addEventListener('click', () => {
+        if (isAdmin) {
+            mostrarPainelAdmin();
+        } else {
+            mostrarModal(loginModal);
+        }
+    });
+    
+    addGameBtn.addEventListener('click', () => mostrarFormularioJogo());
+    logoutBtn.addEventListener('click', fazerLogout);
 
-    // Form submission
-    gameForm.addEventListener('submit', handleGameSubmit);
+    // Submissão de formulários
+    loginForm.addEventListener('submit', fazerLogin);
+    gameForm.addEventListener('submit', submeterFormularioJogo);
 
-    // Modal backdrop clicks
+    // Cliques no backdrop dos modais
     gameModal.addEventListener('click', (e) => {
-        if (e.target === gameModal) hideModal(gameModal);
+        if (e.target === gameModal) esconderModal(gameModal);
     });
     adminModal.addEventListener('click', (e) => {
-        if (e.target === adminModal) hideModal(adminModal);
+        if (e.target === adminModal) esconderModal(adminModal);
     });
     gameFormModal.addEventListener('click', (e) => {
-        if (e.target === gameFormModal) hideModal(gameFormModal);
+        if (e.target === gameFormModal) esconderModal(gameFormModal);
+    });
+    loginModal.addEventListener('click', (e) => {
+        if (e.target === loginModal) esconderModal(loginModal);
     });
 }
 
-// API functions
-async function apiCall(endpoint, options = {}) {
+// Funções de API
+async function chamadaAPI(endpoint, opcoes = {}) {
     try {
-        const response = await fetch(`index.php?api=${endpoint}`, {
+        const resposta = await fetch(`index.php?api=${endpoint}`, {
             headers: {
                 'Content-Type': 'application/json',
-                ...options.headers
+                ...opcoes.headers
             },
-            credentials: 'include', // Importante para sessões
-            ...options
+            credentials: 'include',
+            ...opcoes
         });
         
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        if (!resposta.ok) {
+            const dadosErro = await resposta.json().catch(() => ({}));
+            throw new Error(dadosErro.error || `Erro HTTP! status: ${resposta.status}`);
         }
         
-        return await response.json();
-    } catch (error) {
-        console.error('API call failed:', error);
-        throw error;
+        return await resposta.json();
+    } catch (erro) {
+        console.error('Falha na chamada da API:', erro);
+        throw erro;
     }
 }
 
-// Games loading
-async function loadGames() {
-    showLoading();
+// Carregamento de jogos
+async function carregarJogos() {
+    mostrarCarregamento();
     
     try {
         const params = new URLSearchParams({
@@ -155,223 +169,166 @@ async function loadGames() {
             search: debouncedSearch
         });
         
-        const data = await apiCall(`games?${params}`);
-        renderGames(data.games);
-        renderPagination(data.pagination);
-    } catch (error) {
-        console.error('Failed to load games:', error);
-        showError('Failed to load games');
+        const dados = await chamadaAPI(`games?${params}`);
+        renderizarJogos(dados.games);
+        renderizarPaginacao(dados.pagination);
+    } catch (erro) {
+        console.error('Erro ao carregar jogos:', erro);
+        mostrarErro('Erro ao carregar jogos');
     } finally {
-        hideLoading();
+        esconderCarregamento();
     }
 }
 
-function renderGames(games) {
-    if (games.length === 0) {
-        gamesGrid.innerHTML = `
-            <div class="text-center p-4">
-                <p class="text-muted">No games found.</p>
-            </div>
-        `;
-        return;
-    }
-
-    gamesGrid.innerHTML = games.map(game => createGameCard(game)).join('');
+function renderizarJogos(jogos) {
+    gamesGrid.innerHTML = jogos.map(jogo => criarCardJogo(jogo)).join('');
 }
 
-function createGameCard(game) {
-    const tags = game.tags.split(',').map(tag => tag.trim()).slice(0, 3);
-    const hasDownload = game.downloadUrl || game.downloadUrlWindows || game.downloadUrlAndroid || 
-                       game.downloadUrlLinux || game.downloadUrlMac;
-    
+function criarCardJogo(jogo) {
+    const plataformas = [];
+    if (jogo.os_windows) plataformas.push('Windows');
+    if (jogo.os_android) plataformas.push('Android');
+    if (jogo.os_linux) plataformas.push('Linux');
+    if (jogo.os_mac) plataformas.push('Mac');
+
     return `
-        <div class="game-card" onclick="showGameDetail('${game.id}')">
+        <div class="game-card" onclick="mostrarDetalhesJogo('${jogo.id}')">
             <div class="game-card-image">
-                <img src="${game.imageUrl}" alt="${game.title}" loading="lazy">
+                <img src="${jogo.image_url}" alt="${jogo.title}" loading="lazy">
             </div>
             <div class="game-card-content">
-                <h3 class="game-card-title">${game.title}</h3>
+                <h3 class="game-card-title">${jogo.title}</h3>
+                <p class="game-card-description">${jogo.description}</p>
                 <div class="game-card-meta">
-                    <span class="game-card-badge">${game.engine}</span>
-                    <span>${game.version}</span>
+                    <span class="game-card-developer">${jogo.developer}</span>
+                    <span class="game-card-rating">⭐ ${jogo.rating}</span>
                 </div>
-                <p class="game-card-description">${game.description}</p>
-                <div class="game-card-rating">
-                    <i class="fas fa-star star"></i>
-                    <span>${game.rating.toFixed(1)}</span>
-                </div>
-                <div class="game-card-tags">
-                    ${tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('')}
-                </div>
-                <div class="game-card-footer">
-                    <div class="game-card-date">
-                        <i class="fas fa-calendar"></i>
-                        <span>${new Date(game.releaseDate).toLocaleDateString()}</span>
-                    </div>
-                    ${hasDownload ? `
-                        <button class="download-btn" onclick="event.stopPropagation(); downloadGame('${game.id}')">
-                            <i class="fas fa-download"></i>
-                            Download
-                        </button>
-                    ` : ''}
+                <div class="game-card-platforms">
+                    ${plataformas.map(p => `<span class="platform-tag">${p}</span>`).join('')}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderPagination(pagination) {
-    if (pagination.totalPages <= 1) {
+function renderizarPaginacao(paginacao) {
+    if (paginacao.totalPages <= 1) {
         pagination.innerHTML = '';
         return;
     }
 
-    const pages = getVisiblePages(pagination.page, pagination.totalPages);
+    const paginasVisiveis = obterPaginasVisiveis(paginacao.page, paginacao.totalPages);
     
     pagination.innerHTML = `
-        <button class="pagination-btn" ${pagination.page === 1 ? 'disabled' : ''} 
-                onclick="changePage(${pagination.page - 1})">
-            Previous
+        <button class="pagination-btn" ${paginacao.page === 1 ? 'disabled' : ''} onclick="mudarPagina(${paginacao.page - 1})">
+            <i class="fas fa-chevron-left"></i>
         </button>
-        ${pages.map(page => 
-            page === '...' ? 
-                '<span class="pagination-dots">...</span>' :
-                `<button class="pagination-btn ${page === pagination.page ? 'active' : ''}" 
-                         onclick="changePage(${page})">${page}</button>`
-        ).join('')}
-        <button class="pagination-btn" ${pagination.page === pagination.totalPages ? 'disabled' : ''} 
-                onclick="changePage(${pagination.page + 1})">
-            Next
+        
+        ${paginasVisiveis.map(pagina => `
+            <button class="pagination-btn ${pagina === paginacao.page ? 'active' : ''}" onclick="mudarPagina(${pagina})">
+                ${pagina}
+            </button>
+        `).join('')}
+        
+        <button class="pagination-btn" ${paginacao.page === paginacao.totalPages ? 'disabled' : ''} onclick="mudarPagina(${paginacao.page + 1})">
+            <i class="fas fa-chevron-right"></i>
         </button>
     `;
 }
 
-function getVisiblePages(currentPage, totalPages) {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
-
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
-        range.push(i);
+function obterPaginasVisiveis(paginaAtual, totalPaginas) {
+    const paginas = [];
+    const maxVisiveis = 5;
+    
+    let inicio = Math.max(1, paginaAtual - Math.floor(maxVisiveis / 2));
+    let fim = Math.min(totalPaginas, inicio + maxVisiveis - 1);
+    
+    if (fim - inicio + 1 < maxVisiveis) {
+        inicio = Math.max(1, fim - maxVisiveis + 1);
     }
-
-    if (currentPage - delta > 2) {
-        rangeWithDots.push(1, '...');
-    } else {
-        rangeWithDots.push(1);
+    
+    for (let i = inicio; i <= fim; i++) {
+        paginas.push(i);
     }
-
-    rangeWithDots.push(...range);
-
-    if (currentPage + delta < totalPages - 1) {
-        rangeWithDots.push('...', totalPages);
-    } else {
-        rangeWithDots.push(totalPages);
-    }
-
-    return rangeWithDots;
+    
+    return paginas;
 }
 
-function changePage(page) {
-    currentPage = page;
-    loadGames();
+function mudarPagina(pagina) {
+    currentPage = pagina;
+    carregarJogos();
 }
 
-// Game detail
-async function showGameDetail(gameId) {
+// Detalhes do jogo
+async function mostrarDetalhesJogo(jogoId) {
     try {
-        const game = await apiCall(`games/${gameId}`);
-        renderGameDetail(game);
-        showModal(gameModal);
-    } catch (error) {
-        console.error('Failed to load game details:', error);
-        showError('Failed to load game details');
+        const jogo = await chamadaAPI(`games/${jogoId}`);
+        renderizarDetalhesJogo(jogo);
+        mostrarModal(gameModal);
+    } catch (erro) {
+        console.error('Erro ao carregar detalhes do jogo:', erro);
+        mostrarErro('Erro ao carregar detalhes do jogo');
     }
 }
 
-function renderGameDetail(game) {
-    const tags = game.tags.split(',').map(tag => tag.trim());
-    const platforms = [];
-    if (game.osWindows) platforms.push('Windows');
-    if (game.osAndroid) platforms.push('Android');
-    if (game.osLinux) platforms.push('Linux');
-    if (game.osMac) platforms.push('Mac');
+function renderizarDetalhesJogo(jogo) {
+    const plataformas = [];
+    if (jogo.os_windows) plataformas.push('Windows');
+    if (jogo.os_android) plataformas.push('Android');
+    if (jogo.os_linux) plataformas.push('Linux');
+    if (jogo.os_mac) plataformas.push('Mac');
 
-    modalBody.innerHTML = `
+    const downloads = [];
+    if (jogo.download_url) downloads.push({ plataforma: 'Geral', url: jogo.download_url });
+    if (jogo.download_url_windows) downloads.push({ plataforma: 'Windows', url: jogo.download_url_windows });
+    if (jogo.download_url_android) downloads.push({ plataforma: 'Android', url: jogo.download_url_android });
+    if (jogo.download_url_linux) downloads.push({ plataforma: 'Linux', url: jogo.download_url_linux });
+    if (jogo.download_url_mac) downloads.push({ plataforma: 'Mac', url: jogo.download_url_mac });
+
+    document.getElementById('gameTitle').textContent = jogo.title;
+    document.getElementById('gameModalBody').innerHTML = `
         <div class="game-detail">
             <div class="game-detail-image">
-                <img src="${game.imageUrl}" alt="${game.title}" onclick="window.open('${game.imageUrl}', '_blank')">
+                <img src="${jogo.image_url}" alt="${jogo.title}">
             </div>
             <div class="game-detail-content">
-                <h1 class="game-detail-title">${game.title}</h1>
+                <h3>${jogo.title}</h3>
+                <p class="game-detail-description">${jogo.description}</p>
+                
                 <div class="game-detail-meta">
-                    <span class="game-card-badge">${game.engine}</span>
-                    <span>${game.version}</span>
-                    <span>•</span>
-                    <span>${game.developer}</span>
-                </div>
-                <div class="game-detail-rating">
-                    <i class="fas fa-star star"></i>
-                    <span>${game.rating.toFixed(1)}</span>
-                    ${currentUser ? `
-                        <button class="btn btn-outline" onclick="toggleFavorite('${game.id}')">
-                            <i class="fas fa-heart ${game.isFavorited ? 'text-red-500' : ''}"></i>
-                            ${game.isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-                        </button>
-                    ` : ''}
-                </div>
-                <p class="game-detail-description">${game.description}</p>
-                <div class="game-detail-info">
-                    <div><strong>Language:</strong> ${game.language}</div>
-                    <div><strong>Censored:</strong> ${game.censored ? 'Yes' : 'No'}</div>
-                    <div><strong>Release Date:</strong> ${new Date(game.releaseDate).toLocaleDateString()}</div>
-                </div>
-                <div class="mb-4">
-                    <strong class="text-sm">Platforms:</strong>
-                    <div class="game-detail-platforms">
-                        ${platforms.map(platform => `<span class="game-card-badge">${platform}</span>`).join('')}
+                    <div class="meta-item">
+                        <strong>Desenvolvedor:</strong> ${jogo.developer}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Versão:</strong> ${jogo.version}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Engine:</strong> ${jogo.engine}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Idioma:</strong> ${jogo.language}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Avaliação:</strong> ⭐ ${jogo.rating}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Tags:</strong> ${jogo.tags}
                     </div>
                 </div>
-                <div class="platform-selection">
-                    ${game.osWindows && game.downloadUrlWindows ? `
-                        <button class="platform-btn" onclick="selectPlatform('windows', '${game.downloadUrlWindows}')">
-                            🪟 Windows
-                        </button>
-                    ` : ''}
-                    ${game.osAndroid && game.downloadUrlAndroid ? `
-                        <button class="platform-btn" onclick="selectPlatform('android', '${game.downloadUrlAndroid}')">
-                            🤖 Android
-                        </button>
-                    ` : ''}
-                    ${game.osLinux && game.downloadUrlLinux ? `
-                        <button class="platform-btn" onclick="selectPlatform('linux', '${game.downloadUrlLinux}')">
-                            🐧 Linux
-                        </button>
-                    ` : ''}
-                    ${game.osMac && game.downloadUrlMac ? `
-                        <button class="platform-btn" onclick="selectPlatform('mac', '${game.downloadUrlMac}')">
-                            🍎 Mac
-                        </button>
-                    ` : ''}
+                
+                <div class="game-detail-platforms">
+                    <strong>Plataformas:</strong>
+                    ${plataformas.map(p => `<span class="platform-tag">${p}</span>`).join('')}
                 </div>
-                <div class="mb-4">
-                    <strong class="text-sm">Tags:</strong>
-                    <div class="game-detail-tags">
-                        ${tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('')}
-                    </div>
-                </div>
-                <button class="download-full-btn" id="downloadBtn" disabled>
-                    <i class="fas fa-download"></i>
-                    Select a platform
-                </button>
-                ${game.images && game.images.length > 0 ? `
-                    <div class="game-gallery">
-                        <div class="game-gallery-grid">
-                            ${game.images.map(image => `
-                                <div class="gallery-image">
-                                    <img src="${image.imageUrl}" alt="Screenshot" 
-                                         onclick="window.open('${image.imageUrl}', '_blank')" loading="lazy">
-                                </div>
+                
+                ${downloads.length > 0 ? `
+                    <div class="game-detail-downloads">
+                        <strong>Downloads:</strong>
+                        <div class="download-buttons">
+                            ${downloads.map(d => `
+                                <button class="btn btn-primary btn-sm" onclick="selecionarPlataforma('${d.plataforma}', '${d.url}')">
+                                    <i class="fas fa-download"></i> ${d.plataforma}
+                                </button>
                             `).join('')}
                         </div>
                     </div>
@@ -381,96 +338,122 @@ function renderGameDetail(game) {
     `;
 }
 
-function selectPlatform(platform, url) {
-    selectedPlatform = platform;
-    
-    // Update platform buttons
-    document.querySelectorAll('.platform-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Update download button
-    const downloadBtn = document.getElementById('downloadBtn');
-    downloadBtn.disabled = false;
-    downloadBtn.innerHTML = `<i class="fas fa-download"></i> Download ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
-    downloadBtn.onclick = () => window.open(url, '_blank');
-}
-
-// Admin panel always available
-function updateAuthUI() {
-    // Sempre mostrar o botão Admin Panel
-    loginBtn.innerHTML = `
-        <div class="user-menu">
-            <span>Admin Panel</span>
-            <i class="fas fa-cog"></i>
-        </div>
-    `;
-    loginBtn.className = 'user-btn';
-    
-    // Adicionar menu dropdown
-    const userMenu = document.createElement('div');
-    userMenu.className = 'user-dropdown';
-    userMenu.innerHTML = `
-        <div class="user-dropdown-content">
-            <div class="user-info">
-                <strong>Admin Panel</strong>
-                <span>Gerenciar jogos</span>
-            </div>
-            <button class="dropdown-item admin-btn"><i class="fas fa-cog"></i> Admin Panel</button>
-        </div>
-    `;
-    
-    // Remover menu anterior se existir
-    const existingMenu = document.querySelector('.user-dropdown');
-    if (existingMenu) {
-        existingMenu.remove();
+function selecionarPlataforma(plataforma, url) {
+    if (url) {
+        window.open(url, '_blank');
+        mostrarSucesso(`Download iniciado para ${plataforma}`);
+    } else {
+        mostrarErro('Link de download não disponível');
     }
-    
-    loginBtn.parentNode.appendChild(userMenu);
-    
-    // Event listeners para o menu
-    const adminBtn = userMenu.querySelector('.admin-btn');
-    adminBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showAdminPanel();
-    });
 }
 
-// Admin panel functions
-async function showAdminPanel() {
+// Autenticação admin
+async function verificarStatusAdmin() {
     try {
-        const games = await apiCall('admin/games');
-        renderAdminGames(games);
-        showModal(adminModal);
-    } catch (error) {
-        console.error('Failed to load admin games:', error);
-        showError('Failed to load admin panel');
+        const status = await chamadaAPI('auth/status');
+        if (status.authenticated) {
+            currentUser = status.user;
+            isAdmin = true;
+            atualizarInterfaceAdmin();
+        } else {
+            currentUser = null;
+            isAdmin = false;
+            atualizarInterfaceAdmin();
+        }
+    } catch (erro) {
+        console.error('Erro ao verificar status admin:', erro);
+        currentUser = null;
+        isAdmin = false;
+        atualizarInterfaceAdmin();
     }
 }
 
+function atualizarInterfaceAdmin() {
+    if (isAdmin) {
+        adminBtn.innerHTML = `
+            <i class="fas fa-cog"></i>
+            Admin (${currentUser.name})
+        `;
+        adminBtn.className = 'admin-btn logged-in';
+    } else {
+        adminBtn.innerHTML = `
+            <i class="fas fa-cog"></i>
+            Admin
+        `;
+        adminBtn.className = 'admin-btn';
+    }
+}
 
+async function fazerLogin(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(loginForm);
+    const email = formData.get('email');
+    const password = formData.get('password');
+    
+    try {
+        const resposta = await chamadaAPI('auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+        
+        if (resposta.success) {
+            currentUser = resposta.user;
+            isAdmin = true;
+            atualizarInterfaceAdmin();
+            esconderModal(loginModal);
+            loginForm.reset();
+            mostrarSucesso('Login realizado com sucesso!');
+        }
+    } catch (erro) {
+        console.error('Falha no login:', erro);
+        mostrarErro(erro.message || 'Erro ao fazer login');
+    }
+}
 
-function renderAdminGames(games) {
+async function fazerLogout() {
+    try {
+        await chamadaAPI('auth/logout', { method: 'POST' });
+        currentUser = null;
+        isAdmin = false;
+        atualizarInterfaceAdmin();
+        esconderModal(adminModal);
+        mostrarSucesso('Logout realizado com sucesso!');
+    } catch (erro) {
+        console.error('Falha no logout:', erro);
+        mostrarErro('Erro ao fazer logout');
+    }
+}
+
+// Painel admin
+async function mostrarPainelAdmin() {
+    try {
+        const jogos = await chamadaAPI('admin/games');
+        renderizarJogosAdmin(jogos);
+        mostrarModal(adminModal);
+    } catch (erro) {
+        console.error('Erro ao carregar painel admin:', erro);
+        mostrarErro('Erro ao carregar painel admin');
+    }
+}
+
+function renderizarJogosAdmin(jogos) {
     const adminGamesGrid = document.getElementById('adminGamesGrid');
     
-    adminGamesGrid.innerHTML = games.map(game => `
+    adminGamesGrid.innerHTML = jogos.map(jogo => `
         <div class="admin-game-card">
             <div class="admin-game-card-image">
-                <img src="${game.imageUrl}" alt="${game.title}" onclick="window.open('${game.imageUrl}', '_blank')">
+                <img src="${jogo.image_url}" alt="${jogo.title}" onclick="window.open('${jogo.image_url}', '_blank')">
             </div>
             <div class="admin-game-card-content">
-                <h3 class="admin-game-card-title">${game.title}</h3>
-                <p class="admin-game-card-description">${game.description}</p>
+                <h3 class="admin-game-card-title">${jogo.title}</h3>
+                <p class="admin-game-card-description">${jogo.description}</p>
                 <div class="admin-game-card-actions">
-                    <button class="btn btn-outline btn-sm" onclick="editGame('${game.id}')">
-                        <i class="fas fa-edit"></i> Edit
+                    <button class="btn btn-outline btn-sm" onclick="editarJogo('${jogo.id}')">
+                        <i class="fas fa-edit"></i> Editar
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="manageImages('${game.id}')">
-                        <i class="fas fa-image"></i> Images
-                    </button>
-                    <button class="btn btn-destructive btn-sm" onclick="deleteGame('${game.id}')">
-                        <i class="fas fa-trash"></i> Delete
+                    <button class="btn btn-destructive btn-sm" onclick="excluirJogo('${jogo.id}')">
+                        <i class="fas fa-trash"></i> Excluir
                     </button>
                 </div>
             </div>
@@ -478,52 +461,52 @@ function renderAdminGames(games) {
     `).join('');
 }
 
-function showGameForm(game = null) {
+function mostrarFormularioJogo(jogo = null) {
     const formTitle = document.getElementById('formTitle');
     const submitBtn = document.getElementById('submitBtn');
     
-    if (game) {
-        formTitle.textContent = 'Edit Game';
-        submitBtn.textContent = 'Update Game';
-        populateForm(game);
-        gameForm.dataset.gameId = game.id;
+    if (jogo) {
+        formTitle.textContent = 'Editar Jogo';
+        submitBtn.textContent = 'Atualizar Jogo';
+        preencherFormulario(jogo);
+        gameForm.dataset.jogoId = jogo.id;
     } else {
-        formTitle.textContent = 'Create New Game';
-        submitBtn.textContent = 'Create Game';
+        formTitle.textContent = 'Adicionar Jogo';
+        submitBtn.textContent = 'Adicionar Jogo';
         gameForm.reset();
-        delete gameForm.dataset.gameId;
+        delete gameForm.dataset.jogoId;
     }
     
-    showModal(gameFormModal);
+    mostrarModal(gameFormModal);
 }
 
-function populateForm(game) {
-    document.getElementById('title').value = game.title;
-    document.getElementById('developer').value = game.developer;
-    document.getElementById('description').value = game.description;
-    document.getElementById('imageUrl').value = game.imageUrl;
-    document.getElementById('version').value = game.version;
-    document.getElementById('engine').value = game.engine;
-    document.getElementById('language').value = game.language;
-    document.getElementById('rating').value = game.rating;
-    document.getElementById('tags').value = game.tags;
-    document.getElementById('downloadUrl').value = game.downloadUrl || '';
-    document.getElementById('downloadUrlWindows').value = game.downloadUrlWindows || '';
-    document.getElementById('downloadUrlAndroid').value = game.downloadUrlAndroid || '';
-    document.getElementById('downloadUrlLinux').value = game.downloadUrlLinux || '';
-    document.getElementById('downloadUrlMac').value = game.downloadUrlMac || '';
+function preencherFormulario(jogo) {
+    document.getElementById('title').value = jogo.title;
+    document.getElementById('developer').value = jogo.developer;
+    document.getElementById('description').value = jogo.description;
+    document.getElementById('imageUrl').value = jogo.image_url;
+    document.getElementById('version').value = jogo.version;
+    document.getElementById('engine').value = jogo.engine;
+    document.getElementById('language').value = jogo.language;
+    document.getElementById('rating').value = jogo.rating;
+    document.getElementById('tags').value = jogo.tags;
+    document.getElementById('downloadUrl').value = jogo.download_url || '';
+    document.getElementById('downloadUrlWindows').value = jogo.download_url_windows || '';
+    document.getElementById('downloadUrlAndroid').value = jogo.download_url_android || '';
+    document.getElementById('downloadUrlLinux').value = jogo.download_url_linux || '';
+    document.getElementById('downloadUrlMac').value = jogo.download_url_mac || '';
     
-    document.querySelector('input[name="osWindows"]').checked = game.osWindows;
-    document.querySelector('input[name="osAndroid"]').checked = game.osAndroid;
-    document.querySelector('input[name="osLinux"]').checked = game.osLinux;
-    document.querySelector('input[name="osMac"]').checked = game.osMac;
+    document.querySelector('input[name="osWindows"]').checked = jogo.os_windows;
+    document.querySelector('input[name="osAndroid"]').checked = jogo.os_android;
+    document.querySelector('input[name="osLinux"]').checked = jogo.os_linux;
+    document.querySelector('input[name="osMac"]').checked = jogo.os_mac;
 }
 
-async function handleGameSubmit(e) {
+async function submeterFormularioJogo(e) {
     e.preventDefault();
     
     const formData = new FormData(gameForm);
-    const gameData = {
+    const dadosJogo = {
         title: formData.get('title'),
         description: formData.get('description'),
         imageUrl: formData.get('imageUrl'),
@@ -538,89 +521,92 @@ async function handleGameSubmit(e) {
         downloadUrlAndroid: formData.get('downloadUrlAndroid'),
         downloadUrlLinux: formData.get('downloadUrlLinux'),
         downloadUrlMac: formData.get('downloadUrlMac'),
-        osWindows: formData.has('osWindows'),
-        osAndroid: formData.has('osAndroid'),
-        osLinux: formData.has('osLinux'),
-        osMac: formData.has('osMac')
+        osWindows: formData.get('osWindows') === 'on',
+        osAndroid: formData.get('osAndroid') === 'on',
+        osLinux: formData.get('osLinux') === 'on',
+        osMac: formData.get('osMac') === 'on'
     };
     
     try {
-        const isEdit = gameForm.dataset.gameId;
-        if (isEdit) {
-            await apiCall(`admin/games/${isEdit}`, {
+        const jogoId = gameForm.dataset.jogoId;
+        
+        if (jogoId) {
+            // Atualizar jogo existente
+            await chamadaAPI(`admin/games/${jogoId}`, {
                 method: 'PUT',
-                body: JSON.stringify(gameData)
+                body: JSON.stringify(dadosJogo)
             });
+            mostrarSucesso('Jogo atualizado com sucesso!');
         } else {
-            await apiCall('admin/games', {
+            // Criar novo jogo
+            await chamadaAPI('admin/games', {
                 method: 'POST',
-                body: JSON.stringify(gameData)
+                body: JSON.stringify(dadosJogo)
             });
+            mostrarSucesso('Jogo adicionado com sucesso!');
         }
         
-        hideModal(gameFormModal);
-        loadGames();
-        showSuccess(isEdit ? 'Game updated successfully' : 'Game created successfully');
-    } catch (error) {
-        console.error('Failed to save game:', error);
-        showError('Failed to save game');
+        esconderModal(gameFormModal);
+        carregarJogos();
+        mostrarPainelAdmin(); // Recarregar painel admin
+    } catch (erro) {
+        console.error('Erro ao salvar jogo:', erro);
+        mostrarErro('Erro ao salvar jogo');
     }
 }
 
-async function deleteGame(gameId) {
-    if (!confirm('Are you sure you want to delete this game?')) return;
+async function editarJogo(jogoId) {
+    try {
+        const jogo = await chamadaAPI(`games/${jogoId}`);
+        mostrarFormularioJogo(jogo);
+    } catch (erro) {
+        console.error('Erro ao carregar jogo para edição:', erro);
+        mostrarErro('Erro ao carregar jogo para edição');
+    }
+}
+
+async function excluirJogo(jogoId) {
+    if (!confirm('Tem certeza que deseja excluir este jogo?')) {
+        return;
+    }
     
     try {
-        await apiCall(`admin/games/${gameId}`, { method: 'DELETE' });
-        loadGames();
-        showSuccess('Game deleted successfully');
-    } catch (error) {
-        console.error('Failed to delete game:', error);
-        showError('Failed to delete game');
+        await chamadaAPI(`admin/games/${jogoId}`, {
+            method: 'DELETE'
+        });
+        mostrarSucesso('Jogo excluído com sucesso!');
+        carregarJogos();
+        mostrarPainelAdmin(); // Recarregar painel admin
+    } catch (erro) {
+        console.error('Erro ao excluir jogo:', erro);
+        mostrarErro('Erro ao excluir jogo');
     }
 }
 
-// Utility functions
-function showLoading() {
+// Funções utilitárias
+function mostrarCarregamento() {
     loadingSkeleton.style.display = 'block';
     gamesGrid.style.display = 'none';
-    pagination.style.display = 'none';
-    
-    // Generate skeleton cards
-    const skeletonGrid = loadingSkeleton.querySelector('.skeleton-grid');
-    skeletonGrid.innerHTML = Array.from({ length: 12 }, () => `
-        <div class="skeleton-card">
-            <div class="skeleton-image"></div>
-            <div class="skeleton-content">
-                <div class="skeleton-title"></div>
-                <div class="skeleton-meta"></div>
-                <div class="skeleton-description"></div>
-                <div class="skeleton-description"></div>
-            </div>
-        </div>
-    `).join('');
 }
 
-function hideLoading() {
+function esconderCarregamento() {
     loadingSkeleton.style.display = 'none';
     gamesGrid.style.display = 'grid';
-    pagination.style.display = 'flex';
 }
 
-function showModal(modal) {
+function mostrarModal(modal) {
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
 }
 
-function hideModal(modal) {
+function esconderModal(modal) {
     modal.classList.remove('show');
     document.body.style.overflow = '';
 }
 
-function showError(message) {
-    // Simple error notification
-    const notification = document.createElement('div');
-    notification.style.cssText = `
+function mostrarErro(mensagem) {
+    const notificacao = document.createElement('div');
+    notificacao.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -629,19 +615,19 @@ function showError(message) {
         padding: 1rem;
         border-radius: 0.5rem;
         z-index: 10000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
+    notificacao.textContent = mensagem;
+    document.body.appendChild(notificacao);
     
     setTimeout(() => {
-        notification.remove();
+        notificacao.remove();
     }, 3000);
 }
 
-function showSuccess(message) {
-    // Simple success notification
-    const notification = document.createElement('div');
-    notification.style.cssText = `
+function mostrarSucesso(mensagem) {
+    const notificacao = document.createElement('div');
+    notificacao.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -650,37 +636,12 @@ function showSuccess(message) {
         padding: 1rem;
         border-radius: 0.5rem;
         z-index: 10000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
+    notificacao.textContent = mensagem;
+    document.body.appendChild(notificacao);
     
     setTimeout(() => {
-        notification.remove();
+        notificacao.remove();
     }, 3000);
-}
-
-// Remove old authentication functions - replaced with new ones above
-
-
-
-// Download function
-function downloadGame(gameId) {
-    // This would need proper implementation based on the game's download URLs
-    showSuccess('Download started');
-}
-
-// Admin functions
-async function editGame(gameId) {
-    try {
-        const game = await apiCall(`games/${gameId}`);
-        showGameForm(game);
-    } catch (error) {
-        console.error('Failed to load game for editing:', error);
-        showError('Failed to load game for editing');
-    }
-}
-
-async function manageImages(gameId) {
-    // This would need proper implementation for image management
-    showSuccess('Image management feature coming soon');
 }
