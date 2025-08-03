@@ -108,12 +108,12 @@ Após executar o SQL, você terá:
 - ✅ **Busca** de jogos
 - ✅ **Paginação** automática
 
-### Para Administradores
-- ✅ **Admin Panel** - acesso exclusivo
+### Para Usuários Logados
+- ✅ **Admin Panel** - acesso para todos os usuários logados
 - ✅ **CRUD completo** de jogos
 - ✅ **Upload de imagens** (URL)
-- ✅ **Gestão de usuários**
-- ✅ **Estatísticas** básicas
+- ✅ **Postagem livre** de jogos
+- ✅ **Gestão de conteúdo** completa
 
 ## 🔒 Segurança
 

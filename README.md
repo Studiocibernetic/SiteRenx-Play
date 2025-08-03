@@ -84,11 +84,11 @@ define('DB_PASS', 'sua_senha');
 - **Favoritos**: Adicione jogos aos favoritos (requer login)
 - **Tema**: Alterne entre tema claro e escuro
 
-### Para Administradores
-- **Dashboard**: Painel administrativo completo
-- **CRUD de Jogos**: Criar, editar e excluir jogos
+### Para Usuários Logados
+- **Dashboard**: Painel administrativo para todos os usuários logados
+- **CRUD de Jogos**: Criar, editar e excluir jogos livremente
 - **Upload de Imagens**: Adicionar imagens para galeria de jogos
-- **Gerenciamento**: Controle total sobre o conteúdo
+- **Postagem Livre**: Qualquer usuário pode postar conteúdo
 
 ## API Endpoints
 

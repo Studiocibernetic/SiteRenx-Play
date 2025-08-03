@@ -426,7 +426,7 @@ async function checkAuthStatus() {
         const status = await apiCall('auth/status');
         if (status.authenticated) {
             currentUser = status.user;
-            isAdmin = status.user.is_admin;
+            isAdmin = true; // Todos os usuários logados são admin
             updateAuthUI();
         } else {
             currentUser = null;
@@ -461,7 +461,7 @@ function updateAuthUI() {
                     <strong>${currentUser.name}</strong>
                     <span>${currentUser.email}</span>
                 </div>
-                ${isAdmin ? '<button class="dropdown-item admin-btn"><i class="fas fa-cog"></i> Admin Panel</button>' : ''}
+                <button class="dropdown-item admin-btn"><i class="fas fa-cog"></i> Admin Panel</button>
                 <button class="dropdown-item logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</button>
             </div>
         `;
@@ -478,13 +478,11 @@ function updateAuthUI() {
         const logoutBtn = userMenu.querySelector('.logout-btn');
         logoutBtn.addEventListener('click', handleLogout);
         
-        if (isAdmin) {
-            const adminBtn = userMenu.querySelector('.admin-btn');
-            adminBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                showAdminPanel();
-            });
-        }
+        const adminBtn = userMenu.querySelector('.admin-btn');
+        adminBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showAdminPanel();
+        });
         
     } else {
         // Usuário não logado
@@ -514,7 +512,7 @@ async function handleLogin(e) {
         
         if (response.success) {
             currentUser = response.user;
-            isAdmin = response.user.is_admin;
+            isAdmin = true; // Todos os usuários logados são admin
             updateAuthUI();
             hideModal(loginModal);
             loginForm.reset();
@@ -571,7 +569,7 @@ async function checkAdminStatus() {
     
     try {
         const status = await apiCall('admin/status');
-        isAdmin = status.isAdmin;
+        isAdmin = true; // Todos os usuários logados são admin
         updateAuthUI();
     } catch (error) {
         console.error('Failed to check admin status:', error);

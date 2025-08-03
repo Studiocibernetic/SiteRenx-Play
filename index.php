@@ -490,7 +490,7 @@ function handle_admin_status() {
     
     $user = $auth->getCurrentUser();
     echo json_encode([
-        'isAdmin' => $auth->isAdmin(),
+        'isAdmin' => true, // Todos os usuários logados são considerados admin
         'user' => $user
     ]);
 }
@@ -498,9 +498,9 @@ function handle_admin_status() {
 function handle_admin_games() {
     $auth = new Auth();
     
-    if (!$auth->isLoggedIn() || !$auth->isAdmin()) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Acesso negado: Admin necessário']);
+    if (!$auth->isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Autenticação necessária']);
         return;
     }
     
