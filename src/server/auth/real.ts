@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import { db } from "../db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "renx-play-secret-key";

@@ -1,7 +1,7 @@
-import express from "express";
+import * as express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import path from "path";
+import * as path from "path";
 import { db } from "./src/server/db";
 import {
   listarJogos,
