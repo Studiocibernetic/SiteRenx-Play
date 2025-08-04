@@ -170,7 +170,7 @@ export const clienteApi = {
   },
 
   // Obter imagens do jogo
-  obterImagensJogo: async (params: { idJogo: string }) => {
+  obterImagensJogo: async ({ idJogo }: { idJogo: string }) => {
     return [
       { id: "1", urlImagem: "https://via.placeholder.com/400x300" },
       { id: "2", urlImagem: "https://via.placeholder.com/400x300" },
