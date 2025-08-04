@@ -15,6 +15,7 @@ Plataforma de jogos visual novel com interface moderna e funcionalidades complet
 
 ## 🛠️ Tecnologias
 
+### Frontend
 - **React 18** - Framework principal
 - **TypeScript** - Tipagem estática
 - **Tailwind CSS** - Estilização
@@ -22,17 +23,36 @@ Plataforma de jogos visual novel com interface moderna e funcionalidades complet
 - **React Router** - Navegação
 - **Lucide Icons** - Ícones modernos
 
+### Backend
+- **Express.js** - Servidor Node.js
+- **Prisma** - ORM para banco de dados
+- **SQLite** - Banco de dados
+- **Socket.IO** - Comunicação em tempo real
+- **JWT** - Autenticação
+
 ## 📦 Instalação
 
 ```bash
 # Instalar dependências
 npm install
 
+# Configurar banco de dados
+npm run db:generate
+npm run db:push
+npm run db:init
+
 # Executar em modo desenvolvimento
 npm run dev
 
+# Executar servidor completo (frontend + backend)
+npm run dev:server
+
 # Construir para produção
 npm run build
+npm run build:server
+
+# Executar em produção
+npm start
 
 # Visualizar build de produção
 npm run preview
@@ -46,8 +66,20 @@ src/
 ├── componentes/       # Componentes reutilizáveis em português
 ├── paginas/          # Páginas da aplicação
 ├── client/           # Cliente da API e utilitários
+├── server/           # Backend e banco de dados
+│   ├── db/           # Configuração do banco
+│   ├── auth/         # Sistema de autenticação
+│   └── actions/      # Ações do servidor
 ├── lib/              # Utilitários gerais
 └── main.tsx          # Ponto de entrada
+
+prisma/
+├── schema.prisma     # Schema do banco de dados
+
+scripts/
+└── init-db.ts        # Script de inicialização do banco
+
+server.ts             # Servidor Express completo
 ```
 
 ## 🎯 Funcionalidades Principais
